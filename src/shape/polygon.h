@@ -9,7 +9,7 @@
 
 namespace shape
 {
-	struct EdgeUsedBySortedEdgeTable
+	struct EdgeBucket
 	{
 		int y_max;
 		int x_of_y_min;
@@ -26,7 +26,11 @@ namespace shape
 		sf::Color color_fill;
 		bool is_filled;
 	public:
-		using SortedEdgeTable = std::vector<std::list<EdgeUsedBySortedEdgeTable>*>;
+		struct SortedEdgeTable
+		{
+			std::vector<std::list<EdgeBucket>*> lines;
+			int y_min;
+		};
 
 		Polygon();
 

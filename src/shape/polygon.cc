@@ -37,7 +37,7 @@ namespace shape
 		// Next vertex iterator
 		std::list<sf::Vertex>::iterator next_vertex;
 
-		EdgeUsedBySortedEdgeTable temp{};
+		EdgeBucket temp{};
 		temp.carry = 0; // Because the carry is always 0
 
 		// Used for sorting the vertex by y value
@@ -51,7 +51,9 @@ namespace shape
 		});
 		int table_size = (int) vertex_with_y_min->position.y - (int) vertex_with_y_max->position.y + 1;
 
-		Polygon::SortedEdgeTable sorted_edge_table(table_size);
+		Polygon::SortedEdgeTable sorted_edge_table;
+		sorted_edge_table.lines.resize(table_size);
+		sorted_edge_table.y_min = (int) vertex_with_y_min->position.y;
 
 		// For loop from beginning to end - 1, and taking 2 element each
 		// [1, 2], [2, 3], ...
@@ -78,19 +80,19 @@ namespace shape
 			temp.dx = (int) next_vertex->position.x - (int) current_vertex->position.x;
 			temp.dy = (int) next_vertex->position.y - (int) current_vertex->position.y;
 
-			if (sorted_edge_table[(int) vertex_with_y_min->position.y - y_min] == nullptr)
+			if (sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min] == nullptr)
 			{
-				sorted_edge_table[(int) vertex_with_y_min->position.y - y_min] = new std::list<EdgeUsedBySortedEdgeTable>();
+				sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min] = new std::list<EdgeBucket>();
 			}
 
-			sorted_edge_table[(int) vertex_with_y_min->position.y - y_min]->push_back(temp);
+			sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min]->push_back(temp);
 		}
 		return sorted_edge_table;
 	}
 
 	void Polygon::fill(Polygon::SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window)
 	{
-		for (auto current_sorted_edge_table_element : sorted_edge_table)
+		for (auto current_sorted_edge_table_element : sorted_edge_table.lines)
 		{
 
 		}
@@ -100,20 +102,20 @@ namespace shape
 	void Polygon::printSortedEdgeTable(Polygon::SortedEdgeTable &sorted_edge_table)
 	{
 		printf("DEBUG SET\n");
-		printf("SET size is %zu\n", sorted_edge_table.size());
+		printf("SET size is %zu\n", sorted_edge_table.lines.size());
 
 		int i = -1;
-		for (std::list<EdgeUsedBySortedEdgeTable>* current_sorted_edge_table_element : sorted_edge_table)
+		for (std::list<EdgeBucket>* edge_buckets : sorted_edge_table.lines)
 		{
 			i++;
-			if (current_sorted_edge_table_element == nullptr)
+			if (edge_buckets == nullptr)
 			{
 				continue;
 			}
 			printf("%d.\n", i);
-			for (EdgeUsedBySortedEdgeTable edge : *current_sorted_edge_table_element)
+			for (EdgeBucket edge_bucket : *edge_buckets)
 			{
-				printf("  -> Edge ymax=%d, y_min=%d, dx=%d, dy=%d, carry=%d\n", edge.y_max, edge.x_of_y_min, edge.dx, edge.dy, edge.carry);
+				printf("  -> Edge ymax=%d, y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
 			}
 			printf("\n");
 		}
