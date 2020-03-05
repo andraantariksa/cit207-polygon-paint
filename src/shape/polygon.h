@@ -9,36 +9,42 @@
 
 namespace shape
 {
-	struct EdgeBucket
+	class EdgeBucket
 	{
+	private:
+	public:
 		int y_max;
 		int x_of_y_min;
 		int dx;
 		int dy;
 		int carry;
+		bool next(int pos);
 	};
 
 	class Polygon : public sf::Drawable
 	{
 	private:
-		std::list<sf::Vertex> vertexes;
+		std::vector<sf::Vertex> vertexes;
 		sf::Color color_border;
 		sf::Color color_fill;
 		bool is_filled;
 	public:
 		struct SortedEdgeTable
 		{
-			std::vector<std::list<EdgeBucket>*> lines;
 			int y_min;
+			std::vector<std::vector<EdgeBucket>*> lines;
 		};
+
+		void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
 		Polygon();
 
-		// From drawable
-		void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
-
 		void appendVertex(sf::Vertex vertex);
+		void endVertex();
 		sf::Vertex popBackVertex();
+		int size();
+		const std::vector<sf::Vertex>& data();
+
 		SortedEdgeTable constructSortedEdgeTable();
 		void fill(SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window);
 

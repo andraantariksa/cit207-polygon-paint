@@ -10,14 +10,7 @@ namespace shape
 
 	void Polygon::draw(sf::RenderTarget &target, sf::RenderStates states) const
 	{
-		sf::VertexArray vertex_array(sf::LineStrip, vertexes.size());
-		int i = 0;
-		for (auto vertex : vertexes)
-		{
-			vertex_array[i] = vertex;
-			i++;
-		}
-		target.draw(vertex_array);
+		target.draw(vertexes.data(), vertexes.size(), sf::LineStrip);
 	}
 
 	void Polygon::appendVertex(sf::Vertex vertex)
@@ -32,10 +25,15 @@ namespace shape
 		return ret;
 	}
 
+	void Polygon::endVertex()
+	{
+		vertexes.push_back(*vertexes.begin());
+	}
+
 	Polygon::SortedEdgeTable Polygon::constructSortedEdgeTable()
 	{
 		// Next vertex iterator
-		std::list<sf::Vertex>::iterator next_vertex;
+		std::vector<sf::Vertex>::iterator next_vertex;
 
 		EdgeBucket temp{};
 		temp.carry = 0; // Because the carry is always 0
@@ -47,11 +45,11 @@ namespace shape
 
 		// Get the size of table
 		auto [vertex_with_y_min, vertex_with_y_max] = std::minmax_element(vertexes.begin(), vertexes.end(), [](const sf::Vertex a, const sf::Vertex b){
-			return a.position.y > b.position.y;
+			return a.position.y < b.position.y;
 		});
-		int table_size = (int) vertex_with_y_min->position.y - (int) vertex_with_y_max->position.y + 1;
+		int table_size = (int) vertex_with_y_max->position.y - (int) vertex_with_y_min->position.y + 1;
 
-		Polygon::SortedEdgeTable sorted_edge_table;
+		Polygon::SortedEdgeTable sorted_edge_table = Polygon::SortedEdgeTable();
 		sorted_edge_table.lines.resize(table_size);
 		sorted_edge_table.y_min = (int) vertex_with_y_min->position.y;
 
@@ -67,35 +65,83 @@ namespace shape
 
 			std::sort(
 				sorted_by_y_vertex,
-				sorted_by_y_vertex + 1,
+				sorted_by_y_vertex + 2,
 				[](const sf::Vector2f a, const sf::Vector2f b){
-					return a.y > b.y;
+					return a.y < b.y;
 			});
 
+			// If it's a horizontal line
+			if ((int) sorted_by_y_vertex[0].y == (int) sorted_by_y_vertex[1].y)
+			{
+				continue;
+			}
+
 			int y_min = (int) sorted_by_y_vertex[0].y;
-			temp.y_max = (int) sorted_by_y_vertex[1].y;
+//			printf("y_max=%d, y_min=%d\n", (int) sorted_by_y_vertex[0].y, (int) sorted_by_y_vertex[1].y);
+			temp.y_max = (int) sorted_by_y_vertex[1].y - (int) vertex_with_y_min->position.y;
 			temp.x_of_y_min = (int) sorted_by_y_vertex[0].x;
 
 			// Delta
 			temp.dx = (int) next_vertex->position.x - (int) current_vertex->position.x;
 			temp.dy = (int) next_vertex->position.y - (int) current_vertex->position.y;
 
-			if (sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min] == nullptr)
+			if (temp.dy < 0)
 			{
-				sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min] = new std::list<EdgeBucket>();
+				temp.dy *= -1;
+				temp.dx *= -1;
 			}
 
-			sorted_edge_table.lines[(int) vertex_with_y_min->position.y - y_min]->push_back(temp);
+//			printf("Lowest=%d, Vertex low=%d\n", (int) vertex_with_y_min->position.y, y_min);
+			if (sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] == nullptr)
+			{
+				sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] = new std::vector<EdgeBucket>();
+			}
+
+			sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y]->push_back(temp);
 		}
 		return sorted_edge_table;
 	}
 
 	void Polygon::fill(Polygon::SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window)
 	{
-		for (auto current_sorted_edge_table_element : sorted_edge_table.lines)
-		{
+		std::vector<EdgeBucket> active_edge_list;
 
+		// Iterate from bottom
+		int i = -1;
+		for (auto edge_buckets : sorted_edge_table.lines)
+		{
+			i++;
+			// Check for expiring bucket
+			for (auto edge_bucket : active_edge_list)
+			{
+				// Increment the y value
+				if (!edge_bucket.next(i))
+				{
+
+				}
+			}
+
+			if (edge_buckets == nullptr)
+			{
+				continue;
+			}
+
+			// Add bucket
+			for (auto edge_bucket : *edge_buckets)
+			{
+				active_edge_list.push_back(edge_bucket);
+			}
 		}
+	}
+
+	int Polygon::size()
+	{
+		return vertexes.size();
+	}
+
+	const std::vector<sf::Vertex>& Polygon::data()
+	{
+		return vertexes;
 	}
 
 #ifdef DEBUG
@@ -105,7 +151,7 @@ namespace shape
 		printf("SET size is %zu\n", sorted_edge_table.lines.size());
 
 		int i = -1;
-		for (std::list<EdgeBucket>* edge_buckets : sorted_edge_table.lines)
+		for (std::vector<EdgeBucket>* edge_buckets : sorted_edge_table.lines)
 		{
 			i++;
 			if (edge_buckets == nullptr)
@@ -115,7 +161,7 @@ namespace shape
 			printf("%d.\n", i);
 			for (EdgeBucket edge_bucket : *edge_buckets)
 			{
-				printf("  -> Edge ymax=%d, y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
+				printf("  -> Edge ymax=%d, x_of_y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
 			}
 			printf("\n");
 		}
@@ -123,4 +169,34 @@ namespace shape
 	}
 #endif
 
+	bool EdgeBucket::next(int y_pos)
+	{
+		// Frac
+		// dx    1
+		// -- = ---
+		// dy    m
+
+		// TODO
+		// WRONG
+		if (dx > dy)
+		{
+			carry += dy;
+			if (2 * carry >= dx)
+			{
+				carry -= dx;
+				x_of_y_min++;
+			}
+		}
+		else
+		{
+			carry += dx;
+			if (2 * carry >= dy)
+			{
+				carry -= dy;
+				x_of_y_min++;
+			}
+		}
+
+		return y_pos < y_max;
+	}
 }
