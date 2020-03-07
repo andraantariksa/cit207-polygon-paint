@@ -1,9 +1,9 @@
-#define DEBUG
+#include <SFML/System.hpp>
 
-#include "application.cc"
+#include "application.h"
 
 int main()
 {
-	Application app(1000, 600, sf::String("Hexagon Paint"));
+	Application app(1000, 600, sf::String("Polygon Paint"));
 	app.dispatch();
 }

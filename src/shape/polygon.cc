@@ -1,10 +1,28 @@
+#define DEBUG
+//#define VERBOSE 0
+
 #include <algorithm>
 
 #include "polygon.h"
+#include "edge-bucket.h"
 
 namespace shape
 {
-	Polygon::Polygon()
+	Polygon::Polygon() :
+		is_filled(false)
+	{
+	}
+
+	Polygon::Polygon(Polygon const &another_polygon) :
+		is_filled(another_polygon.is_filled),
+		color_border(another_polygon.color_border),
+		color_fill(another_polygon.color_fill),
+		vertexes(another_polygon.vertexes)
+	{
+	}
+
+	Polygon::Polygon(bool is_filled) :
+		is_filled(is_filled)
 	{
 	}
 
@@ -77,7 +95,6 @@ namespace shape
 			}
 
 			int y_min = (int) sorted_by_y_vertex[0].y;
-//			printf("y_max=%d, y_min=%d\n", (int) sorted_by_y_vertex[0].y, (int) sorted_by_y_vertex[1].y);
 			temp.y_max = (int) sorted_by_y_vertex[1].y - (int) vertex_with_y_min->position.y;
 			temp.x_of_y_min = (int) sorted_by_y_vertex[0].x;
 
@@ -91,7 +108,6 @@ namespace shape
 				temp.dx *= -1;
 			}
 
-//			printf("Lowest=%d, Vertex low=%d\n", (int) vertex_with_y_min->position.y, y_min);
 			if (sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] == nullptr)
 			{
 				sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] = new std::vector<EdgeBucket>();
@@ -104,22 +120,62 @@ namespace shape
 
 	void Polygon::fill(Polygon::SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window)
 	{
+#ifdef DEBUG
+#if VERBOSE == 2
+		printf("Fill Polygon\n");
+#endif
+#endif
 		std::vector<EdgeBucket> active_edge_list;
 
-		// Iterate from bottom
 		int i = -1;
-		for (auto edge_buckets : sorted_edge_table.lines)
+		for (std::vector<EdgeBucket>* edge_buckets : sorted_edge_table.lines)
 		{
 			i++;
-			// Check for expiring bucket
+
+#ifdef DEBUG
+#if VERBOSE == 2
+			printf("Start active edge list for %d\n", i);
 			for (auto edge_bucket : active_edge_list)
 			{
-				// Increment the y value
-				if (!edge_bucket.next(i))
-				{
-
-				}
+				printf("  -> y_max=%d, x_of_y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
 			}
+			printf("End active edge list\n");
+#endif
+#endif
+
+			// I think we only have to sort on inserting the active edge list
+			std::sort(active_edge_list.begin(), active_edge_list.end(), [](EdgeBucket a, EdgeBucket b)
+			{
+				return a.x_of_y_min <= b.x_of_y_min;
+			});
+
+#ifdef DEBUG
+#if VERBOSE == 2
+			for (auto edge_bucket : active_edge_list)
+			{
+				sf::VertexArray l(sf::Points);
+				l.append(sf::Vertex(sf::Vector2f(edge_bucket.x_of_y_min, sorted_edge_table.y_min + i), sf::Color::Red));
+				window->draw(l);
+			}
+#endif
+#endif
+
+			for (auto edge_bucket = active_edge_list.begin(); edge_bucket != active_edge_list.end(); ++(++edge_bucket))
+			{
+				auto next_edge_bucket = std::next(edge_bucket);
+				sf::VertexArray l(sf::Lines);
+				l.append(sf::Vertex(sf::Vector2f(edge_bucket->x_of_y_min, sorted_edge_table.y_min + i), sf::Color::Red));
+				l.append(sf::Vertex(sf::Vector2f(next_edge_bucket->x_of_y_min, sorted_edge_table.y_min + i), sf::Color::Red));
+				window->draw(l);
+			}
+
+			active_edge_list.erase(
+				std::remove_if(active_edge_list.begin(), active_edge_list.end(), [i](EdgeBucket &edge_bucket)
+				{
+					return !edge_bucket.next(i);
+				}),
+				active_edge_list.end()
+			);
 
 			if (edge_buckets == nullptr)
 			{
@@ -132,6 +188,11 @@ namespace shape
 				active_edge_list.push_back(edge_bucket);
 			}
 		}
+#ifdef DEBUG
+#if VERBOSE == 2
+		printf("End Fill Polygon\n");
+#endif
+#endif
 	}
 
 	int Polygon::size()
@@ -168,35 +229,4 @@ namespace shape
 		printf("END DEBUG SET\n");
 	}
 #endif
-
-	bool EdgeBucket::next(int y_pos)
-	{
-		// Frac
-		// dx    1
-		// -- = ---
-		// dy    m
-
-		// TODO
-		// WRONG
-		if (dx > dy)
-		{
-			carry += dy;
-			if (2 * carry >= dx)
-			{
-				carry -= dx;
-				x_of_y_min++;
-			}
-		}
-		else
-		{
-			carry += dx;
-			if (2 * carry >= dy)
-			{
-				carry -= dy;
-				x_of_y_min++;
-			}
-		}
-
-		return y_pos < y_max;
-	}
 }

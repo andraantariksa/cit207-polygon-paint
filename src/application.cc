@@ -1,11 +1,14 @@
-#include "application.h"
+#define DEBUG
+//#define VERBOSE 0
 
 #include <imgui.h>
 #include <imgui-SFML.h>
-#include <SFML/OpenGL.hpp>
 
-#include "shape/polygon.cc"
-#include "utils/SVG.cc"
+#include "application.h"
+#include "shape/layer.h"
+#include "utils/dialog.h"
+#include "utils/svg.h"
+#include "shape/polygon.h"
 
 Application::Application(int width, int height, const sf::String& title) :
 	window_main(new sf::RenderWindow(sf::VideoMode(width, height), title)),
@@ -27,11 +30,9 @@ Application::~Application()
 
 void Application::update()
 {
-	window_main->clear(sf::Color::White);
-
-	for (sf::Drawable* shape : shape_layers)
+	for (Layer layer : layers)
 	{
-		window_main->draw(*shape);
+		layer.draw(window_main);
 	}
 }
 
@@ -44,20 +45,25 @@ void Application::updateInterface(Assets& assets)
 			if (ImGui::MenuItem("Open"))
 			{
 			}
+
+			// Saving
 			if (ImGui::MenuItem("Save"))
 			{
-				utils::SVG test(width, height, "bruh.svg");
-				test.from(shape_layers);
-				test.save();
+				char const* filename = utils::Dialog::save();
+				utils::SVG svg(width, height, filename);
+				svg.from(layers);
+				svg.save();
 			}
+
 			if (ImGui::MenuItem("Close"))
 			{
 				window_main->close();
 			}
+
 			ImGui::EndMenu();
 		}
 #ifdef DEBUG
-		ImGui::Text("State: %d", state);
+		ImGui::Text("State: %d", (int) state);
 #endif
 	}
 	ImGui::EndMainMenuBar();
@@ -74,7 +80,13 @@ void Application::updateInterface(Assets& assets)
 				if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 				{
 					current_polygon_buffer = new shape::Polygon();
-					shape_layers.push_back(current_polygon_buffer);
+
+					Layer temp_layer;
+					temp_layer.type = LayerObjectType::Polygon;
+					temp_layer.object.polygon = current_polygon_buffer;
+					temp_layer.name = "Newly created layer";
+
+					layers.push_back(temp_layer);
 
 					state = State::DrawPolygon;
 				}
@@ -93,21 +105,43 @@ void Application::updateInterface(Assets& assets)
 			{
 				ImGui::BeginChild("", ImVec2(0, 200), true);
 				int current_layer_idx = 0;
-				for (auto layer = shape_layers.begin(); layer != shape_layers.end(); ++layer, ++current_layer_idx)
+				for (auto layer = layers.begin(); layer != layers.end(); ++layer, ++current_layer_idx)
 				{
-					char label[128];
-					sprintf(label, "Polygon %d", current_layer_idx);
-					if (ImGui::Selectable(label, selected_layer_idx == current_layer_idx))
+					if (ImGui::Selectable(layer->name.c_str(), selected_layer_idx == current_layer_idx))
 					{
 						selected_layer_idx = current_layer_idx;
 					}
 				}
 				ImGui::EndChild();
 
+				if (ImGui::Button("Bring Front"))
+				{
+					if (selected_layer_idx != layers.size() - 1)
+					{
+						Layer temp_layer(layers[selected_layer_idx]);
+						layers[selected_layer_idx] = layers[selected_layer_idx + 1];
+						layers[selected_layer_idx + 1] = temp_layer;
+						selected_layer_idx += 1;
+					}
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Bring Back"))
+				{
+					if (selected_layer_idx != 0)
+					{
+						Layer temp_layer(layers[selected_layer_idx]);
+						layers[selected_layer_idx] = layers[selected_layer_idx - 1];
+						layers[selected_layer_idx - 1] = temp_layer;
+						selected_layer_idx -= 1;
+					}
+				}
+
 				if (ImGui::Button("Delete Selected Layer"))
 				{
-					delete shape_layers.at(selected_layer_idx);
-					shape_layers.erase(shape_layers.begin() + selected_layer_idx);
+					layers.at(selected_layer_idx).free();
+					layers.erase(layers.begin() + selected_layer_idx);
 				}
 			}
 //		}
@@ -163,11 +197,49 @@ void Application::dispatch()
 	auto* t = new shape::Polygon();
 	t->appendVertex(sf::Vertex(sf::Vector2f(200, 180), sf::Color::Black));
 	t->appendVertex(sf::Vertex(sf::Vector2f(200, 150), sf::Color::Black));
-	t->appendVertex(sf::Vertex(sf::Vector2f(120, 200), sf::Color::Black));
+	t->appendVertex(sf::Vertex(sf::Vector2f(280, 200), sf::Color::Black));
 	t->endVertex();
 	auto set = t->constructSortedEdgeTable();
 	shape::Polygon::printSortedEdgeTable(set);
-	shape_layers.push_back(t);
+
+	Layer temp_layer;
+	temp_layer.type = LayerObjectType::Polygon;
+	temp_layer.object.polygon = t;
+	temp_layer.name = "Bruh";
+
+	layers.push_back(temp_layer);
+
+	// Sample
+	auto* t2 = new shape::Polygon();
+	t2->appendVertex(sf::Vertex(sf::Vector2f(500, 180), sf::Color::Black));
+	t2->appendVertex(sf::Vertex(sf::Vector2f(500, 150), sf::Color::Black));
+	t2->appendVertex(sf::Vertex(sf::Vector2f(580, 300), sf::Color::Black));
+	t2->endVertex();
+	auto set2 = t2->constructSortedEdgeTable();
+	shape::Polygon::printSortedEdgeTable(set2);
+
+	temp_layer.type = LayerObjectType::Polygon;
+	temp_layer.object.polygon = t2;
+	temp_layer.name = "Moment";
+
+	layers.push_back(temp_layer);
+
+	auto* t3 = new shape::Polygon();
+	t3->appendVertex(sf::Vertex(sf::Vector2f(500, 350), sf::Color::Black));
+	t3->appendVertex(sf::Vertex(sf::Vector2f(500, 550), sf::Color::Black));
+	t3->appendVertex(sf::Vertex(sf::Vector2f(600, 450), sf::Color::Black));
+	t3->appendVertex(sf::Vertex(sf::Vector2f(700, 550), sf::Color::Black));
+	t3->appendVertex(sf::Vertex(sf::Vector2f(700, 350), sf::Color::Black));
+	t3->appendVertex(sf::Vertex(sf::Vector2f(600, 450), sf::Color::Black));
+	t3->endVertex();
+	auto set3 = t3->constructSortedEdgeTable();
+	shape::Polygon::printSortedEdgeTable(set3);
+
+	temp_layer.type = LayerObjectType::Polygon;
+	temp_layer.object.polygon = t3;
+	temp_layer.name = "Bruh2";
+
+	layers.push_back(temp_layer);
 #endif
 
 	while (window_main->isOpen())
@@ -187,7 +259,15 @@ void Application::dispatch()
 			}
 		}
 
+		window_main->clear(sf::Color::White);
+
 		update();
+
+#ifdef DEBUG
+		t->fill(set, window_main);
+		t2->fill(set2, window_main);
+		t3->fill(set3, window_main);
+#endif
 
 		ImGui::SFML::Update(*window_main, delta_clock.restart());
 		updateInterface(assets);

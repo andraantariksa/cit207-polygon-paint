@@ -7,10 +7,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(FETCHCONTENT_QUIET OFF)
 
-set(SOURCE
-        "src/main.cc"
-        )
-
 # SFML
 set(SFML_VERSION "2.5.1")
 FetchContent_Declare(
@@ -53,15 +49,31 @@ if(NOT imgui_sfml_POPULATED)
     add_subdirectory("${imgui_sfml_SOURCE_DIR}" "${imgui_sfml_BINARY_DIR}")
 endif()
 
-add_executable(PolygonPaint
-        "${SOURCE}"
+set(SOURCE
+        src/main.cc
+        src/application.cc
+        src/utils/dialog.cc
+        src/utils/svg.cc
+        src/shape/layer.cc
+        src/shape/edge-bucket.cc
+        src/shape/polygon.cc
         )
+
+add_executable(PolygonPaint
+        ${SOURCE}
+
+        lib/tinyfiledialogs/tinyfiledialogs.c
+        )
+
+target_include_directories(PolygonPaint
+        PRIVATE
+        lib/tinyfiledialogs)
 
 target_link_libraries(PolygonPaint
         PRIVATE
-        "sfml-graphics"
-        "sfml-system"
-        "sfml-window"
+        sfml-graphics
+        sfml-system
+        sfml-window
         ImGui-SFML::ImGui-SFML
         )
 

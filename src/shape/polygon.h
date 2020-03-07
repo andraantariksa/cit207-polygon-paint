@@ -7,20 +7,10 @@
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
 
+#include "edge-bucket.h"
+
 namespace shape
 {
-	class EdgeBucket
-	{
-	private:
-	public:
-		int y_max;
-		int x_of_y_min;
-		int dx;
-		int dy;
-		int carry;
-		bool next(int pos);
-	};
-
 	class Polygon : public sf::Drawable
 	{
 	private:
@@ -38,6 +28,8 @@ namespace shape
 		void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
 		Polygon();
+		Polygon(bool is_filled);
+		Polygon(Polygon const &another_polygon);
 
 		void appendVertex(sf::Vertex vertex);
 		void endVertex();

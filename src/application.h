@@ -5,7 +5,8 @@
 
 #include <SFML/Graphics.hpp>
 
-#include "shape/common.h"
+#include "shape/layer.h"
+#include "shape/polygon.h"
 
 enum class State
 {
@@ -19,7 +20,7 @@ private:
 	sf::RenderWindow* window_main;
 	// TODO
 	// Make the shape become general, not only polygon
-	std::vector<sf::Drawable*> shape_layers;
+	std::vector<Layer> layers;
 	int width;
 	int height;
 	State state;

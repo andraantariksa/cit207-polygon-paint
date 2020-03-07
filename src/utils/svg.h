@@ -2,6 +2,7 @@
 #define _SVG_H_
 
 #include "../../lib/simple-svg/simple_svg.hpp"
+#include "../shape/layer.h"
 
 namespace utils
 {
@@ -13,9 +14,9 @@ namespace utils
 		svg::Document document;
 
 	public:
-		SVG(int width, int height, char* filename);
+		SVG(int width, int height, char const* filename);
 
-		void from(std::vector<sf::Drawable*>& shapes);
+		void from(std::vector<Layer>& shapes);
 		void save();
 	};
 
