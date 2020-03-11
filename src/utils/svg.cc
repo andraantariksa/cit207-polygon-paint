@@ -1,6 +1,8 @@
 #include <SFML/Graphics/Drawable.hpp>
+#include <cstring>
 
-#include "../../lib/simple-svg/simple_svg.hpp"
+#include "tinyxml2.h"
+#include "simple_svg.hpp"
 
 #include "svg.h"
 #include "../shape/polygon.h"
@@ -25,7 +27,28 @@ namespace utils
 		{
 			if (layer.type == LayerObjectType::Polygon)
 			{
-				svg::Polygon polygon(svg::Stroke(1, svg::Color::Black));
+				sf::Color sfmlPolygonFillColor = layer.object.polygon->getFillColor();
+				svg::Color simpleSVGPolygonFillColor(
+					(int) (sfmlPolygonFillColor.r),
+					(int) (sfmlPolygonFillColor.g),
+					(int) (sfmlPolygonFillColor.b)
+				);
+
+				sf::Color sfmlPolygonOutlineColor = layer.object.polygon->getOutlineColor();
+				svg::Color simpleSVGPolygonOutlineColor(
+					(int) (sfmlPolygonOutlineColor.r),
+					(int) (sfmlPolygonOutlineColor.g),
+					(int) (sfmlPolygonOutlineColor.b)
+				);
+
+				svg::Fill fillColor;
+
+				if (layer.object.polygon->isFilled())
+				{
+					fillColor = svg::Fill(simpleSVGPolygonFillColor);
+				}
+
+				svg::Polygon polygon(fillColor, svg::Stroke(1, simpleSVGPolygonOutlineColor));
 				for (auto vertex : ((shape::Polygon*) layer.object.polygon)->data())
 				{
 					point.x = vertex.position.x;
@@ -45,6 +68,78 @@ namespace utils
 	void SVG::save()
 	{
 		document.save();
+	}
+
+	void SVG::loadFromFile(char const* filename, std::vector<Layer>* layers)
+	{
+		tinyxml2::XMLDocument doc;
+		doc.LoadFile(filename);
+
+		tinyxml2::XMLElement* xml_svg = doc.FirstChildElement("svg");
+
+		int iter = 0;
+
+		for(
+			tinyxml2::XMLElement* xml_polygon = xml_svg->FirstChildElement("polygon");
+			xml_polygon != nullptr;
+			xml_polygon = xml_polygon->NextSiblingElement("polygon"), iter++
+		)
+		{
+			Layer temp_layer;
+			temp_layer.type = LayerObjectType::Polygon;
+			temp_layer.name = std::string("Layer") + std::to_string(iter);
+
+			std::vector<sf::Vertex> temp_vertices;
+
+			const char* stroke = xml_polygon->Attribute("stroke");
+
+			float secondary_color[3];
+
+			std::sscanf(stroke, "rgb(%f,%f,%f)", &secondary_color[0], &secondary_color[1], &secondary_color[2]);
+
+			const char* points = xml_polygon->Attribute("points");
+			std::stringstream ss_points(points);
+
+			int x, y;
+
+			char trash; // Comma
+
+			while(ss_points >> x >> trash >> y)
+			{
+				temp_vertices.push_back(sf::Vertex(sf::Vector2f(x, y), sf::Color::Black));
+			}
+
+			const char* fill = xml_polygon->Attribute("fill");
+
+			float primary_color[3];
+
+			std::sscanf(fill, "rgb(%f,%f,%f)", &primary_color[0], &primary_color[1], &primary_color[2]);
+			primary_color[0] /= 255.0f;
+			primary_color[1] /= 255.0f;
+			primary_color[2] /= 255.0f;
+
+			bool is_filled = true;
+
+			if (std::strcmp(fill, "none") == 0)
+			{
+				memset(primary_color, 0, sizeof(float) * 3);
+				is_filled = false;
+			}
+
+			temp_layer.object.polygon = new shape::Polygon(primary_color, secondary_color, is_filled);
+
+			for (auto vertex : temp_vertices)
+			{
+				temp_layer.object.polygon->appendVertex(vertex);
+			}
+
+			if (is_filled)
+			{
+				temp_layer.object.polygon->constructSortedEdgeTable();
+			}
+
+			layers->push_back(temp_layer);
+		}
 	}
 
 };

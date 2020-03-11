@@ -24,9 +24,12 @@ private:
 	int width;
 	int height;
 	State state;
+	int layer_counter;
 
-	float picked_color[4];
+	float picked_color_primary[3];
+	float picked_color_secondary[3];
 	int selected_layer_idx;
+	int selected_fill_color_choice;
 
 	shape::Polygon *current_polygon_buffer;
 public:

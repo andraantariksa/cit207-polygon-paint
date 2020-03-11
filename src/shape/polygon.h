@@ -1,6 +1,9 @@
 #ifndef _POLYGON_H_
 #define _POLYGON_H_
 
+//#define DEBUG
+//#define VERBOSE 0
+
 #include <vector>
 #include <list>
 
@@ -15,7 +18,7 @@ namespace shape
 	{
 	private:
 		std::vector<sf::Vertex> vertexes;
-		sf::Color color_border;
+		sf::Color color_outline;
 		sf::Color color_fill;
 		bool is_filled;
 	public:
@@ -23,22 +26,26 @@ namespace shape
 		{
 			int y_min;
 			std::vector<std::vector<EdgeBucket>*> lines;
-		};
+		}
+		sorted_edge_table;
 
 		void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
 		Polygon();
-		Polygon(bool is_filled);
+		Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled);
 		Polygon(Polygon const &another_polygon);
 
 		void appendVertex(sf::Vertex vertex);
 		void endVertex();
 		sf::Vertex popBackVertex();
 		int size();
+		const sf::Color& getFillColor();
+		const sf::Color& getOutlineColor();
+		const bool& isFilled();
 		const std::vector<sf::Vertex>& data();
 
 		SortedEdgeTable constructSortedEdgeTable();
-		void fill(SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window);
+		void fill(sf::RenderTarget &window) const;
 
 #ifdef DEBUG
 		static void printSortedEdgeTable(SortedEdgeTable &sorted_edge_table);

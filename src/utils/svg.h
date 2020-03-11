@@ -16,6 +16,8 @@ namespace utils
 	public:
 		SVG(int width, int height, char const* filename);
 
+		static void loadFromFile(char const* filename, std::vector<Layer>* layers);
+
 		void from(std::vector<Layer>& shapes);
 		void save();
 	};

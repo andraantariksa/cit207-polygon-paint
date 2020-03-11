@@ -1,0 +1,58 @@
+
+  SimpleXML
+
+  A simplified C++ tree based parser of XML 1.0 documents
+
+  Copyright 2003 by Brian Ecker.
+  Please see the file LICENSE for licensing details.
+
+
+  The class, xml, takes 1 argument: an xml encoded char string, parses the 
+  string and generates an internal tree structure representation of the
+  document.
+
+  Example:
+
+  The following XML string:
+
+    char *xml_string = "
+
+      <list>
+        <deer>
+          <age>7</age>
+        </deer>
+        <dog>
+          <age>4</age>
+        </dog>
+        <label>
+          Animal charts
+        </label>
+      </list>
+
+    ";
+
+  When processed as follows:
+
+    xml *root = new xml(xml_string);
+
+  Would be parsed into the following tree structure:
+
+    ##############################################################
+    #                                              #             #
+    #                 list                         #  //  Branch #
+    #              //  ||  \\                      #             #
+    #            deer  dog  label                  #   /  Leaf   #
+    #           //     ||     \                    #             #
+    #          age     age     "Animal charts"     #             #
+    #          /        |                          #             #
+    #        "7"       "4"                         #             #
+    #                                              #             #
+    ##############################################################
+
+  And can be accessed as follows:
+
+    root->child("dog")->child("age")->value();  // returns the string "4"
+
+    root->child("label")->value();  // returns the string "Animal charts"
+
+    root->child("deer")->number_of_children();  // returns the integer 1

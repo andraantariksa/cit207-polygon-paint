@@ -3,31 +3,41 @@
 
 #include <algorithm>
 
+#include "../utils/color.h"
 #include "polygon.h"
 #include "edge-bucket.h"
 
 namespace shape
 {
 	Polygon::Polygon() :
+		color_outline(sf::Color::Black),
+		color_fill(sf::Color::Transparent),
 		is_filled(false)
 	{
 	}
 
 	Polygon::Polygon(Polygon const &another_polygon) :
-		is_filled(another_polygon.is_filled),
-		color_border(another_polygon.color_border),
+		vertexes(another_polygon.vertexes),
+		color_outline(another_polygon.color_outline),
 		color_fill(another_polygon.color_fill),
-		vertexes(another_polygon.vertexes)
+		is_filled(another_polygon.is_filled)
 	{
 	}
 
-	Polygon::Polygon(bool is_filled) :
+	Polygon::Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled) :
+		color_outline(color_float3(picked_color_secondary)),
+		color_fill(color_float3(picked_color_primary)),
 		is_filled(is_filled)
 	{
 	}
 
 	void Polygon::draw(sf::RenderTarget &target, sf::RenderStates states) const
 	{
+		if (!sorted_edge_table.lines.empty() && is_filled)
+		{
+			fill(target);
+		}
+
 		target.draw(vertexes.data(), vertexes.size(), sf::LineStrip);
 	}
 
@@ -46,6 +56,8 @@ namespace shape
 	void Polygon::endVertex()
 	{
 		vertexes.push_back(*vertexes.begin());
+		auto t = constructSortedEdgeTable();
+		printSortedEdgeTable(t);
 	}
 
 	Polygon::SortedEdgeTable Polygon::constructSortedEdgeTable()
@@ -65,11 +77,16 @@ namespace shape
 		auto [vertex_with_y_min, vertex_with_y_max] = std::minmax_element(vertexes.begin(), vertexes.end(), [](const sf::Vertex a, const sf::Vertex b){
 			return a.position.y < b.position.y;
 		});
+
 		int table_size = (int) vertex_with_y_max->position.y - (int) vertex_with_y_min->position.y + 1;
 
-		Polygon::SortedEdgeTable sorted_edge_table = Polygon::SortedEdgeTable();
-		sorted_edge_table.lines.resize(table_size);
-		sorted_edge_table.y_min = (int) vertex_with_y_min->position.y;
+#ifdef DEBUG
+		printf("The sorted edge table size is %d - %d + 1 = %d\n", (int) vertex_with_y_max->position.y, (int) vertex_with_y_min->position.y, table_size);
+#endif
+
+		Polygon::SortedEdgeTable sorted_edge_table_temp = Polygon::SortedEdgeTable();
+		sorted_edge_table_temp.lines.resize(table_size);
+		sorted_edge_table_temp.y_min = (int) vertex_with_y_min->position.y;
 
 		// For loop from beginning to end - 1, and taking 2 element each
 		// [1, 2], [2, 3], ...
@@ -108,17 +125,20 @@ namespace shape
 				temp.dx *= -1;
 			}
 
-			if (sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] == nullptr)
+			if (sorted_edge_table_temp.lines[y_min - (int) vertex_with_y_min->position.y] == nullptr)
 			{
-				sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y] = new std::vector<EdgeBucket>();
+				sorted_edge_table_temp.lines[y_min - (int) vertex_with_y_min->position.y] = new std::vector<EdgeBucket>();
 			}
 
-			sorted_edge_table.lines[y_min - (int) vertex_with_y_min->position.y]->push_back(temp);
+			sorted_edge_table_temp.lines[y_min - (int) vertex_with_y_min->position.y]->push_back(temp);
 		}
-		return sorted_edge_table;
+
+		sorted_edge_table = sorted_edge_table_temp;
+
+		return sorted_edge_table_temp;
 	}
 
-	void Polygon::fill(Polygon::SortedEdgeTable &sorted_edge_table, sf::RenderWindow* window)
+	void Polygon::fill(sf::RenderTarget &window) const
 	{
 #ifdef DEBUG
 #if VERBOSE == 2
@@ -164,9 +184,11 @@ namespace shape
 			{
 				auto next_edge_bucket = std::next(edge_bucket);
 				sf::VertexArray l(sf::Lines);
-				l.append(sf::Vertex(sf::Vector2f(edge_bucket->x_of_y_min, sorted_edge_table.y_min + i), sf::Color::Red));
-				l.append(sf::Vertex(sf::Vector2f(next_edge_bucket->x_of_y_min, sorted_edge_table.y_min + i), sf::Color::Red));
-				window->draw(l);
+				l.append(sf::Vertex(sf::Vector2f(edge_bucket->x_of_y_min,
+					sorted_edge_table.y_min + i), color_fill));
+				l.append(sf::Vertex(sf::Vector2f(next_edge_bucket->x_of_y_min,
+					sorted_edge_table.y_min + i), color_fill));
+				window.draw(l);
 			}
 
 			active_edge_list.erase(
@@ -222,11 +244,29 @@ namespace shape
 			printf("%d.\n", i);
 			for (EdgeBucket edge_bucket : *edge_buckets)
 			{
-				printf("  -> Edge ymax=%d, x_of_y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
+				printf("-\n");
+//				printf("  -> Edge ymax=%d, x_of_y_min=%d, dx=%d, dy=%d, carry=%d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
+				printf("ymax = %d\nx_of_y_min = %d\ndx = %d\ndy = %d\ncarry = %d\n", edge_bucket.y_max, edge_bucket.x_of_y_min, edge_bucket.dx, edge_bucket.dy, edge_bucket.carry);
 			}
 			printf("\n");
 		}
 		printf("END DEBUG SET\n");
 	}
+
+	const sf::Color& Polygon::getFillColor()
+	{
+		return color_fill;
+	}
+
+	const sf::Color& Polygon::getOutlineColor()
+	{
+		return color_outline;
+	}
+
+	const bool& Polygon::isFilled()
+	{
+		return is_filled;
+	}
+
 #endif
 }

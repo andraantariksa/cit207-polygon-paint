@@ -10,6 +10,7 @@ namespace utils
 	{
 	public:
 		static char const* save();
+		static char const* load();
 		static std::string defaultFilename();
 	};
 

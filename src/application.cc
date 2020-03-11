@@ -3,19 +3,27 @@
 
 #include <imgui.h>
 #include <imgui-SFML.h>
+#include <cstring>
 
 #include "application.h"
 #include "shape/layer.h"
 #include "utils/dialog.h"
 #include "utils/svg.h"
 #include "shape/polygon.h"
+#include "utils/color.h"
 
 Application::Application(int width, int height, const sf::String& title) :
 	window_main(new sf::RenderWindow(sf::VideoMode(width, height), title)),
 	width(width),
 	height(height),
-	state(State::Nothing)
+	state(State::Nothing),
+	selected_layer_idx(-1),
+	selected_fill_color_choice(0),
+	layer_counter(0)
 {
+	std::memset(picked_color_primary, 0, sizeof(float) * 3);
+	std::memset(picked_color_secondary, 0, sizeof(float) * 3);
+
 	ImGui::SFML::Init(*this->window_main);
 	// Disable saving the ImGui configuration
 	ImGui::GetIO().IniFilename = nullptr;
@@ -44,6 +52,13 @@ void Application::updateInterface(Assets& assets)
 		{
 			if (ImGui::MenuItem("Open"))
 			{
+				char const* filename = utils::Dialog::load();
+				for (auto layer : layers)
+				{
+					layer.free();
+				}
+				layers.clear();
+				utils::SVG::loadFromFile(filename, &layers);
 			}
 
 			// Saving
@@ -62,6 +77,8 @@ void Application::updateInterface(Assets& assets)
 
 			ImGui::EndMenu();
 		}
+		auto mouse_pos = sf::Mouse::getPosition(*window_main);
+		ImGui::Text("x: %d, y: %d", (int) mouse_pos.x, (int) mouse_pos.y);
 #ifdef DEBUG
 		ImGui::Text("State: %d", (int) state);
 #endif
@@ -79,12 +96,16 @@ void Application::updateInterface(Assets& assets)
 				// Polygon Button
 				if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 				{
-					current_polygon_buffer = new shape::Polygon();
+					current_polygon_buffer = new shape::Polygon(
+						picked_color_primary,
+						picked_color_secondary,
+						selected_fill_color_choice == 1
+					);
 
 					Layer temp_layer;
 					temp_layer.type = LayerObjectType::Polygon;
 					temp_layer.object.polygon = current_polygon_buffer;
-					temp_layer.name = "Newly created layer";
+					temp_layer.name = std::string("Layer ") + std::to_string(layer_counter++);
 
 					layers.push_back(temp_layer);
 
@@ -94,11 +115,27 @@ void Application::updateInterface(Assets& assets)
 				{
 					ImGui::SetTooltip("Polygon shape");
 				}
+
+//				ImGui::BeginCombo("Fill");
+//				ImGui::Combo("No fill");
+//				ImGui::Combo("Use primary color");
+//				ImGui::EndCombo();
+				const char* fill_color_choice_items[] = { "No fill", "Primary color" };
+				ImGui::Combo(
+					"Fill Color",
+					&selected_fill_color_choice,
+					fill_color_choice_items,
+					IM_ARRAYSIZE(fill_color_choice_items)
+				);
 			}
 
-			if (ImGui::CollapsingHeader("Shape", ImGuiTreeNodeFlags_DefaultOpen))
+			// TODO
+			// Hollow and filled option
+
+			if (ImGui::CollapsingHeader("Color", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				ImGui::ColorPicker4("Color", picked_color);
+				ImGui::ColorEdit3("Primary Color", picked_color_primary);
+				ImGui::ColorEdit3("Secondary Color", picked_color_secondary);
 			}
 
 			if (ImGui::CollapsingHeader("Layer", ImGuiTreeNodeFlags_DefaultOpen))
@@ -112,11 +149,12 @@ void Application::updateInterface(Assets& assets)
 						selected_layer_idx = current_layer_idx;
 					}
 				}
+//				printf("selected_layer_idx %d\ncurrent_layer_idx %d\n", selected_layer_idx, current_layer_idx);
 				ImGui::EndChild();
 
 				if (ImGui::Button("Bring Front"))
 				{
-					if (selected_layer_idx != layers.size() - 1)
+					if (!layers.empty() && selected_layer_idx != layers.size() - 1)
 					{
 						Layer temp_layer(layers[selected_layer_idx]);
 						layers[selected_layer_idx] = layers[selected_layer_idx + 1];
@@ -129,7 +167,7 @@ void Application::updateInterface(Assets& assets)
 
 				if (ImGui::Button("Bring Back"))
 				{
-					if (selected_layer_idx != 0)
+					if (!layers.empty() && selected_layer_idx != 0)
 					{
 						Layer temp_layer(layers[selected_layer_idx]);
 						layers[selected_layer_idx] = layers[selected_layer_idx - 1];
@@ -140,8 +178,18 @@ void Application::updateInterface(Assets& assets)
 
 				if (ImGui::Button("Delete Selected Layer"))
 				{
-					layers.at(selected_layer_idx).free();
-					layers.erase(layers.begin() + selected_layer_idx);
+					if (!layers.empty())
+					{
+#ifdef DEBUG
+						for (auto v : layers.at(selected_layer_idx).object.polygon->data())
+						{
+							printf("(%d, %d), ", (int) v.position.x, (int) v.position.y);
+						}
+						printf("\n");
+#endif
+						layers.at(selected_layer_idx).free();
+						layers.erase(layers.begin() + selected_layer_idx);
+					}
 				}
 			}
 //		}
@@ -173,7 +221,7 @@ void Application::drawPolygonEvent(sf::Event& event)
 		if (event.mouseButton.button == sf::Mouse::Left)
 		{
 			sf::Vector2i flo = sf::Mouse::getPosition(*window_main);
-			sf::Vertex mouse_click_position(sf::Vector2f(flo.x, flo.y), sf::Color::Black);
+			sf::Vertex mouse_click_position(sf::Vector2f(flo.x, flo.y), color_float3(picked_color_secondary));
 			current_polygon_buffer->appendVertex(mouse_click_position);
 
 #ifdef DEBUG
@@ -192,55 +240,25 @@ void Application::dispatch()
 
 	window_main->clear(sf::Color::White);
 
-#ifdef DEBUG
-	// Sample
-	auto* t = new shape::Polygon();
-	t->appendVertex(sf::Vertex(sf::Vector2f(200, 180), sf::Color::Black));
-	t->appendVertex(sf::Vertex(sf::Vector2f(200, 150), sf::Color::Black));
-	t->appendVertex(sf::Vertex(sf::Vector2f(280, 200), sf::Color::Black));
-	t->endVertex();
-	auto set = t->constructSortedEdgeTable();
-	shape::Polygon::printSortedEdgeTable(set);
+//	float r[3] = {1.0f, 0.0f, 0.0f};
+//	float black[3] = {0.0f, 0.0f, 0.0f};
+//	Layer l;
+//	l.type = LayerObjectType::Polygon;
+//	l.name = "Rectangle";
+//	l.object.polygon = new shape::Polygon(r, black, true);
+//	l.object.polygon->appendVertex(sf::Vertex(sf::Vector2f(300, 200), sf::Color::Black));
+//	l.object.polygon->appendVertex(sf::Vertex(sf::Vector2f(400, 200), sf::Color::Black));
+//	l.object.polygon->appendVertex(sf::Vertex(sf::Vector2f(450, 300), sf::Color::Black));
+//	l.object.polygon->appendVertex(sf::Vertex(sf::Vector2f(250, 250), sf::Color::Black));
+//	l.object.polygon->endVertex();
+//
+//	for (auto v : l.object.polygon->data())
+//	{
+//		printf("(%d, %d), ", (int) v.position.x, (int) v.position.y);
+//	}
+//	printf("\n");
 
-	Layer temp_layer;
-	temp_layer.type = LayerObjectType::Polygon;
-	temp_layer.object.polygon = t;
-	temp_layer.name = "Bruh";
-
-	layers.push_back(temp_layer);
-
-	// Sample
-	auto* t2 = new shape::Polygon();
-	t2->appendVertex(sf::Vertex(sf::Vector2f(500, 180), sf::Color::Black));
-	t2->appendVertex(sf::Vertex(sf::Vector2f(500, 150), sf::Color::Black));
-	t2->appendVertex(sf::Vertex(sf::Vector2f(580, 300), sf::Color::Black));
-	t2->endVertex();
-	auto set2 = t2->constructSortedEdgeTable();
-	shape::Polygon::printSortedEdgeTable(set2);
-
-	temp_layer.type = LayerObjectType::Polygon;
-	temp_layer.object.polygon = t2;
-	temp_layer.name = "Moment";
-
-	layers.push_back(temp_layer);
-
-	auto* t3 = new shape::Polygon();
-	t3->appendVertex(sf::Vertex(sf::Vector2f(500, 350), sf::Color::Black));
-	t3->appendVertex(sf::Vertex(sf::Vector2f(500, 550), sf::Color::Black));
-	t3->appendVertex(sf::Vertex(sf::Vector2f(600, 450), sf::Color::Black));
-	t3->appendVertex(sf::Vertex(sf::Vector2f(700, 550), sf::Color::Black));
-	t3->appendVertex(sf::Vertex(sf::Vector2f(700, 350), sf::Color::Black));
-	t3->appendVertex(sf::Vertex(sf::Vector2f(600, 450), sf::Color::Black));
-	t3->endVertex();
-	auto set3 = t3->constructSortedEdgeTable();
-	shape::Polygon::printSortedEdgeTable(set3);
-
-	temp_layer.type = LayerObjectType::Polygon;
-	temp_layer.object.polygon = t3;
-	temp_layer.name = "Bruh2";
-
-	layers.push_back(temp_layer);
-#endif
+//	layers.push_back(l);
 
 	while (window_main->isOpen())
 	{
@@ -262,12 +280,6 @@ void Application::dispatch()
 		window_main->clear(sf::Color::White);
 
 		update();
-
-#ifdef DEBUG
-		t->fill(set, window_main);
-		t2->fill(set2, window_main);
-		t3->fill(set3, window_main);
-#endif
 
 		ImGui::SFML::Update(*window_main, delta_clock.restart());
 		updateInterface(assets);

@@ -52,6 +52,7 @@ endif()
 set(SOURCE
         src/main.cc
         src/application.cc
+        src/utils/color.cc
         src/utils/dialog.cc
         src/utils/svg.cc
         src/shape/layer.cc
@@ -63,11 +64,17 @@ add_executable(PolygonPaint
         ${SOURCE}
 
         lib/tinyfiledialogs/tinyfiledialogs.c
+#        lib/simplexml/lib/simplexml.cc
+        lib/tinyxml2/tinyxml2.cpp
         )
 
 target_include_directories(PolygonPaint
         PRIVATE
-        lib/tinyfiledialogs)
+        lib/tinyfiledialogs
+        lib/simple-svg
+#        lib/simplexml/lib
+        lib/tinyxml2
+        )
 
 target_link_libraries(PolygonPaint
         PRIVATE

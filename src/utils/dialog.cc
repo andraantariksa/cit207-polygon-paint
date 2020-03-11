@@ -15,8 +15,22 @@ namespace utils
 		return tinyfd_saveFileDialog(
 			"Save file",
 			Dialog::defaultFilename().c_str(),
-			1, filter,
+			1,
+			filter,
 			"SVG"
+		);
+	}
+
+	char const* Dialog::load()
+	{
+		char const* filter[1] = { "*.svg" };
+		return tinyfd_openFileDialog(
+			"Load file",
+			"",
+			1,
+			filter,
+			"SVG",
+			false
 		);
 	}
 
