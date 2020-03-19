@@ -1,17 +1,18 @@
 #ifndef _APPLICATION_HPP_
 #define _APPLICATION_HPP_
 
+#include "shape/layer.h"
+#include "shape/polygon.h"
+
 #include <list>
 
 #include <SFML/Graphics.hpp>
 
-#include "shape/layer.h"
-#include "shape/polygon.h"
-
 enum class State
 {
 	Nothing,
-	DrawPolygon
+	DrawPolygon,
+	EditVertexPolygon
 };
 
 class Application
@@ -31,7 +32,9 @@ private:
 	int selected_layer_idx;
 	int selected_fill_color_choice;
 
-	shape::Polygon *current_polygon_buffer;
+	shape::Polygon* current_polygon_buffer;
+	sf::Vertex* vertex_buffer;
+	bool mouse_hold;
 public:
 	struct Assets
 	{
@@ -39,17 +42,19 @@ public:
 		{
 			sf::Texture polygon;
 		}
-		icon;
+			icon;
 	};
 
 	Application(int width, int height, const sf::String& title);
 	~Application();
 
 	void update();
-	void updateInterface(Assets &assets);
+	void updateInterface(Assets& assets);
 	void dispatch();
 
-	void drawPolygonEvent(sf::Event &event);
+	void editVertexPolygonEvent(sf::Event& event);
+	void endVertexPolygonEvent();
+	void drawPolygonEvent(sf::Event& event);
 	void endDrawPolygonEvent();
 };
 

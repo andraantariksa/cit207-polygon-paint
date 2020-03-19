@@ -17,10 +17,13 @@ Application::Application(int width, int height, const sf::String& title) :
 	width(width),
 	height(height),
 	state(State::Nothing),
+	layer_counter(0),
 	selected_layer_idx(-1),
 	selected_fill_color_choice(0),
-	layer_counter(0)
+	mouse_hold(false)
 {
+	window_main->setFramerateLimit(60);
+
 	std::memset(picked_color_primary, 0, sizeof(float) * 3);
 	std::memset(picked_color_secondary, 0, sizeof(float) * 3);
 
@@ -152,6 +155,13 @@ void Application::updateInterface(Assets& assets)
 //				printf("selected_layer_idx %d\ncurrent_layer_idx %d\n", selected_layer_idx, current_layer_idx);
 				ImGui::EndChild();
 
+				if (ImGui::Button("Edit polygon"))
+				{
+					layers[selected_layer_idx].object.polygon->startEditMode();
+					state = State::EditVertexPolygon;
+					current_polygon_buffer = layers[selected_layer_idx].object.polygon;
+				}
+
 				if (ImGui::Button("Bring Front"))
 				{
 					if (!layers.empty() && selected_layer_idx != layers.size() - 1)
@@ -275,6 +285,10 @@ void Application::dispatch()
 			{
 				drawPolygonEvent(event);
 			}
+			else if (state == State::EditVertexPolygon)
+			{
+				editVertexPolygonEvent(event);
+			}
 		}
 
 		window_main->clear(sf::Color::White);
@@ -288,4 +302,37 @@ void Application::dispatch()
 
 		window_main->display();
 	}
+}
+
+void Application::editVertexPolygonEvent(sf::Event& event)
+{
+	auto mouse_pos = sf::Mouse::getPosition(*window_main);
+
+	if (mouse_hold)
+	{
+		vertex_buffer->position.x = mouse_pos.x;
+		vertex_buffer->position.y = mouse_pos.y;
+	}
+
+	if (event.type == sf::Event::MouseButtonPressed)
+	{
+		if (!mouse_hold)
+		{
+			sf::Vertex* vertex = current_polygon_buffer->getNearestVertex(mouse_pos);
+			if (vertex != nullptr)
+			{
+				vertex_buffer = vertex;
+				mouse_hold = true;
+			}
+		}
+	}
+	else if (event.type == sf::Event::MouseButtonReleased)
+	{
+		mouse_hold = false;
+	}
+}
+
+void Application::endVertexPolygonEvent()
+{
+
 }

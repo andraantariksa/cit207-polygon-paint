@@ -21,19 +21,20 @@ namespace shape
 		sf::Color color_outline;
 		sf::Color color_fill;
 		bool is_filled;
+		bool edit_mode;
 	public:
 		struct SortedEdgeTable
 		{
 			int y_min;
 			std::vector<std::vector<EdgeBucket>*> lines;
 		}
-		sorted_edge_table;
+			sorted_edge_table;
 
-		void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
+		void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
 		Polygon();
 		Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled);
-		Polygon(Polygon const &another_polygon);
+		Polygon(Polygon const& another_polygon);
 
 		void appendVertex(sf::Vertex vertex);
 		void endVertex();
@@ -45,10 +46,13 @@ namespace shape
 		const std::vector<sf::Vertex>& data();
 
 		SortedEdgeTable constructSortedEdgeTable();
-		void fill(sf::RenderTarget &window) const;
+		void fill(sf::RenderTarget& window) const;
+		void startEditMode();
+		void endEditMode();
+		sf::Vertex* getNearestVertex(sf::Vector2i pos);
 
 #ifdef DEBUG
-		static void printSortedEdgeTable(SortedEdgeTable &sorted_edge_table);
+		static void printSortedEdgeTable(SortedEdgeTable& sorted_edge_table);
 #endif
 	};
 

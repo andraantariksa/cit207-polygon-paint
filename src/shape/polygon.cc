@@ -9,14 +9,18 @@
 
 namespace shape
 {
-	Polygon::Polygon() :
+	Polygon::Polygon()
+		:
+		edit_mode(false),
 		color_outline(sf::Color::Black),
 		color_fill(sf::Color::Transparent),
 		is_filled(false)
 	{
 	}
 
-	Polygon::Polygon(Polygon const &another_polygon) :
+	Polygon::Polygon(Polygon const& another_polygon)
+		:
+		edit_mode(false),
 		vertexes(another_polygon.vertexes),
 		color_outline(another_polygon.color_outline),
 		color_fill(another_polygon.color_fill),
@@ -24,21 +28,42 @@ namespace shape
 	{
 	}
 
-	Polygon::Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled) :
+	Polygon::Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled)
+		:
+		edit_mode(false),
 		color_outline(color_float3(picked_color_secondary)),
 		color_fill(color_float3(picked_color_primary)),
 		is_filled(is_filled)
 	{
 	}
 
-	void Polygon::draw(sf::RenderTarget &target, sf::RenderStates states) const
+	void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const
 	{
 		if (!sorted_edge_table.lines.empty() && is_filled)
 		{
 			fill(target);
 		}
 
+		auto rect = sf::RectangleShape(sf::Vector2f(10.0, 10.0));
+		rect.setOrigin(5.0, 5.0);
+		rect.setFillColor(sf::Color::Black);
+
+		if (edit_mode)
+		{
+			for (const auto& vertex : vertexes)
+			{
+				rect.setPosition(vertex.position);
+				target.draw(rect);
+			}
+		}
+
 		target.draw(vertexes.data(), vertexes.size(), sf::LineStrip);
+		// TODO
+		if (!vertexes.empty())
+		{
+			sf::Vertex end_line[2] = { *--vertexes.end(), *vertexes.begin() };
+			target.draw(end_line, 2, sf::LineStrip);
+		}
 	}
 
 	void Polygon::appendVertex(sf::Vertex vertex)
@@ -55,7 +80,8 @@ namespace shape
 
 	void Polygon::endVertex()
 	{
-		vertexes.push_back(*vertexes.begin());
+		// TODO
+//		vertexes.push_back(*vertexes.begin());
 		auto t = constructSortedEdgeTable();
 		printSortedEdgeTable(t);
 	}
@@ -266,6 +292,28 @@ namespace shape
 	const bool& Polygon::isFilled()
 	{
 		return is_filled;
+	}
+
+	void Polygon::startEditMode()
+	{
+		edit_mode = true;
+	}
+
+	void Polygon::endEditMode()
+	{
+		edit_mode = false;
+	}
+
+	sf::Vertex* Polygon::getNearestVertex(sf::Vector2i pos)
+	{
+		for (auto& vertex : vertexes)
+		{
+			if (std::abs(vertex.position.x - pos.x) <= 10 && std::abs(vertex.position.y - pos.y) <= 10)
+			{
+				return &vertex;
+			}
+		}
+		return nullptr;
 	}
 
 #endif
