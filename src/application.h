@@ -3,28 +3,22 @@
 
 #include "shape/layer.h"
 #include "shape/polygon.h"
+#include "state.h"
 
 #include <list>
+#include <memory>
 
 #include <SFML/Graphics.hpp>
-
-enum class State
-{
-	Nothing,
-	DrawPolygon,
-	EditVertexPolygon
-};
 
 class Application
 {
 private:
-	sf::RenderWindow* window_main;
-	// TODO
-	// Make the shape become general, not only polygon
+	std::unique_ptr<sf::RenderWindow> window_main;
+	int window_width;
+	int window_height;
+
 	std::vector<Layer> layers;
-	int width;
-	int height;
-	State state;
+	StateManager state_manager;
 	int layer_counter;
 
 	float picked_color_primary[3];
@@ -45,7 +39,7 @@ public:
 			icon;
 	};
 
-	Application(int width, int height, const sf::String& title);
+	Application(int window_width, int window_height, const sf::String& title);
 	~Application();
 
 	void update();
@@ -53,7 +47,7 @@ public:
 	void dispatch();
 
 	void editVertexPolygonEvent(sf::Event& event);
-	void endVertexPolygonEvent();
+	void endEditVertexPolygonEvent();
 	void drawPolygonEvent(sf::Event& event);
 	void endDrawPolygonEvent();
 };

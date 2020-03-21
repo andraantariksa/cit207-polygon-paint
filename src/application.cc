@@ -12,22 +12,27 @@
 #include "shape/polygon.h"
 #include "utils/color.h"
 
-Application::Application(int width, int height, const sf::String& title) :
-	window_main(new sf::RenderWindow(sf::VideoMode(width, height), title)),
-	width(width),
-	height(height),
-	state(State::Nothing),
+Application::Application(int window_width, int window_height, const sf::String& title)
+	:
+	window_main(std::make_unique<sf::RenderWindow>(sf::VideoMode(window_width, window_height), title)),
+	window_width(window_width),
+	window_height(window_height),
+	state_manager(State::Nothing),
 	layer_counter(0),
+	picked_color_primary{ 0, 0, 0 },
+	picked_color_secondary{ 0, 0, 0 },
 	selected_layer_idx(-1),
 	selected_fill_color_choice(0),
+	current_polygon_buffer(nullptr),
+	vertex_buffer(nullptr),
 	mouse_hold(false)
 {
+	// Should be limited to avoid high computation
+	// Without this, my computer will works really hard
 	window_main->setFramerateLimit(60);
 
-	std::memset(picked_color_primary, 0, sizeof(float) * 3);
-	std::memset(picked_color_secondary, 0, sizeof(float) * 3);
-
 	ImGui::SFML::Init(*this->window_main);
+
 	// Disable saving the ImGui configuration
 	ImGui::GetIO().IniFilename = nullptr;
 }
@@ -35,15 +40,13 @@ Application::Application(int width, int height, const sf::String& title) :
 Application::~Application()
 {
 	ImGui::SFML::Shutdown();
-
-	delete this->window_main;
 }
 
 void Application::update()
 {
 	for (Layer layer : layers)
 	{
-		layer.draw(window_main);
+		layer.draw(window_main.get());
 	}
 }
 
@@ -68,7 +71,7 @@ void Application::updateInterface(Assets& assets)
 			if (ImGui::MenuItem("Save"))
 			{
 				char const* filename = utils::Dialog::save();
-				utils::SVG svg(width, height, filename);
+				utils::SVG svg(window_width, window_height, filename);
 				svg.from(layers);
 				svg.save();
 			}
@@ -81,9 +84,9 @@ void Application::updateInterface(Assets& assets)
 			ImGui::EndMenu();
 		}
 		auto mouse_pos = sf::Mouse::getPosition(*window_main);
-		ImGui::Text("x: %d, y: %d", (int) mouse_pos.x, (int) mouse_pos.y);
+		ImGui::Text("x: %d, y: %d", (int)mouse_pos.x, (int)mouse_pos.y);
 #ifdef DEBUG
-		ImGui::Text("State: %d", (int) state);
+		ImGui::Text("State: %d", (int)state_manager.get());
 #endif
 	}
 	ImGui::EndMainMenuBar();
@@ -99,6 +102,7 @@ void Application::updateInterface(Assets& assets)
 				// Polygon Button
 				if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 				{
+					printf("selected_fill_color_choice: %d\n", selected_fill_color_choice);
 					current_polygon_buffer = new shape::Polygon(
 						picked_color_primary,
 						picked_color_secondary,
@@ -112,8 +116,9 @@ void Application::updateInterface(Assets& assets)
 
 					layers.push_back(temp_layer);
 
-					state = State::DrawPolygon;
+					state_manager.set(State::DrawPolygon);
 				}
+
 				if (ImGui::IsItemHovered())
 				{
 					ImGui::SetTooltip("Polygon shape");
@@ -158,7 +163,7 @@ void Application::updateInterface(Assets& assets)
 				if (ImGui::Button("Edit polygon"))
 				{
 					layers[selected_layer_idx].object.polygon->startEditMode();
-					state = State::EditVertexPolygon;
+					state_manager.set(State::EditVertexPolygon);
 					current_polygon_buffer = layers[selected_layer_idx].object.polygon;
 				}
 
@@ -211,7 +216,7 @@ void Application::updateInterface(Assets& assets)
 
 void Application::endDrawPolygonEvent()
 {
-	state = State::Nothing;
+	state_manager.set(State::Nothing);
 
 	current_polygon_buffer->endVertex();
 	current_polygon_buffer = nullptr;
@@ -281,11 +286,11 @@ void Application::dispatch()
 				window_main->close();
 			}
 
-			if (state == State::DrawPolygon)
+			if (state_manager.is(State::DrawPolygon))
 			{
 				drawPolygonEvent(event);
 			}
-			else if (state == State::EditVertexPolygon)
+			else if (state_manager.is(State::EditVertexPolygon))
 			{
 				editVertexPolygonEvent(event);
 			}
@@ -329,10 +334,11 @@ void Application::editVertexPolygonEvent(sf::Event& event)
 	else if (event.type == sf::Event::MouseButtonReleased)
 	{
 		mouse_hold = false;
+		current_polygon_buffer->endVertex();
 	}
 }
 
-void Application::endVertexPolygonEvent()
+void Application::endEditVertexPolygonEvent()
 {
 
 }

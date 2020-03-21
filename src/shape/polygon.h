@@ -17,11 +17,16 @@ namespace shape
 	class Polygon : public sf::Drawable
 	{
 	private:
+		const int vertex_edit_drag_max_distance = 10;
+		const sf::Color vertex_edit_color = sf::Color::Black;
+
 		std::vector<sf::Vertex> vertexes;
 		sf::Color color_outline;
 		sf::Color color_fill;
 		bool is_filled;
 		bool edit_mode;
+		bool finish;
+
 	public:
 		struct SortedEdgeTable
 		{

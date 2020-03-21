@@ -11,29 +11,31 @@ namespace shape
 {
 	Polygon::Polygon()
 		:
-		edit_mode(false),
 		color_outline(sf::Color::Black),
 		color_fill(sf::Color::Transparent),
-		is_filled(false)
+		is_filled(false),
+		edit_mode(false),
+		finish(false)
 	{
 	}
 
 	Polygon::Polygon(Polygon const& another_polygon)
 		:
-		edit_mode(false),
 		vertexes(another_polygon.vertexes),
 		color_outline(another_polygon.color_outline),
 		color_fill(another_polygon.color_fill),
-		is_filled(another_polygon.is_filled)
+		is_filled(another_polygon.is_filled),
+		edit_mode(false)
 	{
 	}
 
 	Polygon::Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled)
 		:
-		edit_mode(false),
 		color_outline(color_float3(picked_color_secondary)),
 		color_fill(color_float3(picked_color_primary)),
-		is_filled(is_filled)
+		is_filled(is_filled),
+		edit_mode(false),
+		finish(false)
 	{
 	}
 
@@ -44,9 +46,9 @@ namespace shape
 			fill(target);
 		}
 
-		auto rect = sf::RectangleShape(sf::Vector2f(10.0, 10.0));
-		rect.setOrigin(5.0, 5.0);
-		rect.setFillColor(sf::Color::Black);
+		auto rect = sf::RectangleShape(sf::Vector2f(vertex_edit_drag_max_distance, vertex_edit_drag_max_distance));
+		rect.setOrigin((float)vertex_edit_drag_max_distance / 2, (float)vertex_edit_drag_max_distance / 2);
+		rect.setFillColor(vertex_edit_color);
 
 		if (edit_mode)
 		{
@@ -58,8 +60,8 @@ namespace shape
 		}
 
 		target.draw(vertexes.data(), vertexes.size(), sf::LineStrip);
-		// TODO
-		if (!vertexes.empty())
+
+		if (finish)
 		{
 			sf::Vertex end_line[2] = { *--vertexes.end(), *vertexes.begin() };
 			target.draw(end_line, 2, sf::LineStrip);
@@ -80,10 +82,15 @@ namespace shape
 
 	void Polygon::endVertex()
 	{
-		// TODO
-//		vertexes.push_back(*vertexes.begin());
+		finish = true;
+
+		// Should be connected, to generate the sorted edge table
+		vertexes.push_back(*vertexes.begin());
 		auto t = constructSortedEdgeTable();
+		vertexes.pop_back();
+#ifdef DEBUG
 		printSortedEdgeTable(t);
+#endif
 	}
 
 	Polygon::SortedEdgeTable Polygon::constructSortedEdgeTable()
@@ -308,7 +315,9 @@ namespace shape
 	{
 		for (auto& vertex : vertexes)
 		{
-			if (std::abs(vertex.position.x - pos.x) <= 10 && std::abs(vertex.position.y - pos.y) <= 10)
+			if (
+				std::abs((int)vertex.position.x - pos.x) <= vertex_edit_drag_max_distance &&
+				std::abs((int)vertex.position.y - pos.y) <= vertex_edit_drag_max_distance)
 			{
 				return &vertex;
 			}
