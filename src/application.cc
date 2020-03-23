@@ -3,7 +3,6 @@
 
 #include <imgui.h>
 #include <imgui-SFML.h>
-#include <cstring>
 
 #include "application.h"
 #include "shape/layer.h"
@@ -12,12 +11,11 @@
 #include "shape/polygon.h"
 #include "utils/color.h"
 
-Application::Application(int window_width, int window_height, const sf::String& title)
-	:
+Application::Application(int window_width, int window_height, const sf::String& title) :
 	window_main(std::make_unique<sf::RenderWindow>(sf::VideoMode(window_width, window_height), title)),
 	window_width(window_width),
 	window_height(window_height),
-	state_manager(State::Nothing),
+	state_manager(),
 	layer_counter(0),
 	picked_color_primary{ 0, 0, 0 },
 	picked_color_secondary{ 0, 0, 0 },
@@ -95,82 +93,84 @@ void Application::updateInterface(Assets& assets)
 	ImGui::SetNextWindowSize(ImVec2(200, 440), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Toolbox", nullptr, ImGuiWindowFlags_None))
 	{
-//		if (ImGui::BeginTabBar(""))
-//		{
-			if (ImGui::CollapsingHeader("Shape", ImGuiTreeNodeFlags_DefaultOpen))
+		if (ImGui::CollapsingHeader("Shape", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// Polygon button
+			if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 			{
-				// Polygon Button
-				if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
-				{
-					printf("selected_fill_color_choice: %d\n", selected_fill_color_choice);
-					current_polygon_buffer = new shape::Polygon(
-						picked_color_primary,
-						picked_color_secondary,
-						selected_fill_color_choice == 1
-					);
+				state_manager.set(State::DrawPolygon);
 
-					Layer temp_layer;
-					temp_layer.type = LayerObjectType::Polygon;
-					temp_layer.object.polygon = current_polygon_buffer;
-					temp_layer.name = std::string("Layer ") + std::to_string(layer_counter++);
-
-					layers.push_back(temp_layer);
-
-					state_manager.set(State::DrawPolygon);
-				}
-
-				if (ImGui::IsItemHovered())
-				{
-					ImGui::SetTooltip("Polygon shape");
-				}
-
-//				ImGui::BeginCombo("Fill");
-//				ImGui::Combo("No fill");
-//				ImGui::Combo("Use primary color");
-//				ImGui::EndCombo();
-				const char* fill_color_choice_items[] = { "No fill", "Primary color" };
-				ImGui::Combo(
-					"Fill Color",
-					&selected_fill_color_choice,
-					fill_color_choice_items,
-					IM_ARRAYSIZE(fill_color_choice_items)
+				current_polygon_buffer = new shape::Polygon(
+					picked_color_primary,
+					picked_color_secondary,
+					selected_fill_color_choice == 1
 				);
-			}
 
-			// TODO
-			// Hollow and filled option
+				Layer temp_layer;
+				temp_layer.type = LayerObjectType::Polygon;
+				temp_layer.object.polygon = current_polygon_buffer;
+				temp_layer.name = std::string("Layer ") + std::to_string(layer_counter++);
 
-			if (ImGui::CollapsingHeader("Color", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::ColorEdit3("Primary Color", picked_color_primary);
-				ImGui::ColorEdit3("Secondary Color", picked_color_secondary);
-			}
+				layers.push_back(temp_layer);
 
-			if (ImGui::CollapsingHeader("Layer", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::BeginChild("", ImVec2(0, 200), true);
-				int current_layer_idx = 0;
-				for (auto layer = layers.begin(); layer != layers.end(); ++layer, ++current_layer_idx)
+				state_manager.setLifeCycleEnd(State::DrawPolygon, [this]()
 				{
-					if (ImGui::Selectable(layer->name.c_str(), selected_layer_idx == current_layer_idx))
+					current_polygon_buffer->endVertex();
+					current_polygon_buffer = nullptr;
+				});
+			}
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Polygon shape");
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Color", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::ColorEdit3("Primary", picked_color_primary);
+			ImGui::ColorEdit3("Secondary", picked_color_secondary);
+
+			const char* fill_color_choice_items[] = { "No fill", "Primary color" };
+			ImGui::Combo(
+				"Fill",
+				&selected_fill_color_choice,
+				fill_color_choice_items,
+				IM_ARRAYSIZE(fill_color_choice_items)
+			);
+		}
+
+		if (ImGui::CollapsingHeader("Layer", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::BeginChild("", ImVec2(0, 200), true);
+
+			int current_layer_idx = 0;
+			for (auto layer = layers.begin(); layer != layers.end(); ++layer, ++current_layer_idx)
+			{
+				if (ImGui::Selectable(layer->name.c_str(), selected_layer_idx == current_layer_idx))
+				{
+					if (selected_layer_idx != -1)
 					{
-						selected_layer_idx = current_layer_idx;
+						state_manager.set(State::Nothing);
+						layers[selected_layer_idx].object.polygon->isEditMode(false);
+						current_polygon_buffer = nullptr;
 					}
+
+					selected_layer_idx = current_layer_idx;
 				}
+			}
 //				printf("selected_layer_idx %d\ncurrent_layer_idx %d\n", selected_layer_idx, current_layer_idx);
-				ImGui::EndChild();
+			ImGui::EndChild();
 
-				if (ImGui::Button("Edit polygon"))
+			if (selected_layer_idx != -1)
+			{
+				// If not the last/front layer
+				if (selected_layer_idx != layers.size() - 1)
 				{
-					layers[selected_layer_idx].object.polygon->startEditMode();
-					state_manager.set(State::EditVertexPolygon);
-					current_polygon_buffer = layers[selected_layer_idx].object.polygon;
-				}
-
-				if (ImGui::Button("Bring Front"))
-				{
-					if (!layers.empty() && selected_layer_idx != layers.size() - 1)
+					if (ImGui::Button("Bring Front"))
 					{
+						state_manager.set(State::Nothing);
+
 						Layer temp_layer(layers[selected_layer_idx]);
 						layers[selected_layer_idx] = layers[selected_layer_idx + 1];
 						layers[selected_layer_idx + 1] = temp_layer;
@@ -178,12 +178,13 @@ void Application::updateInterface(Assets& assets)
 					}
 				}
 
-				ImGui::SameLine();
-
-				if (ImGui::Button("Bring Back"))
+				// If not the first/back layer
+				if (selected_layer_idx != 0)
 				{
-					if (!layers.empty() && selected_layer_idx != 0)
+					if (ImGui::Button("Bring Back"))
 					{
+						state_manager.set(State::Nothing);
+
 						Layer temp_layer(layers[selected_layer_idx]);
 						layers[selected_layer_idx] = layers[selected_layer_idx - 1];
 						layers[selected_layer_idx - 1] = temp_layer;
@@ -191,44 +192,69 @@ void Application::updateInterface(Assets& assets)
 					}
 				}
 
+				if (!state_manager.is(State::EditVertexPolygon))
+				{
+					if (ImGui::Button("Edit polygon"))
+					{
+						state_manager.set(State::EditVertexPolygon);
+						state_manager.setLifeCycleEnd(State::EditVertexPolygon, [this]()
+						{
+							layers[selected_layer_idx].object.polygon->isEditMode(false);
+							current_polygon_buffer = nullptr;
+						});
+
+						layers[selected_layer_idx].object.polygon->isEditMode(true);
+						current_polygon_buffer = layers[selected_layer_idx].object.polygon;
+					}
+				}
+				else
+				{
+					if (ImGui::Button("Finish edit polygon"))
+					{
+						state_manager.set(State::Nothing);
+					}
+				}
+
 				if (ImGui::Button("Delete Selected Layer"))
 				{
-					if (!layers.empty())
-					{
+					state_manager.set(State::Nothing);
+
 #ifdef DEBUG
-						for (auto v : layers.at(selected_layer_idx).object.polygon->data())
-						{
-							printf("(%d, %d), ", (int) v.position.x, (int) v.position.y);
-						}
-						printf("\n");
+					for (auto v : layers.at(selected_layer_idx).object.polygon->data())
+					{
+						printf("(%d, %d), ", (int)v.position.x, (int)v.position.y);
+					}
+					printf("\n");
 #endif
+					try
+					{
 						layers.at(selected_layer_idx).free();
 						layers.erase(layers.begin() + selected_layer_idx);
 					}
+					catch (std::exception& ex)
+					{
+						printf("Error when deleting layer\n");
+					}
+
+					selected_layer_idx = -1;
 				}
 			}
-//		}
-//		ImGui::EndTabBar();
-
-		ImGui::End();
+		}
 	}
-}
-
-void Application::endDrawPolygonEvent()
-{
-	state_manager.set(State::Nothing);
-
-	current_polygon_buffer->endVertex();
-	current_polygon_buffer = nullptr;
+	ImGui::End();
 }
 
 void Application::drawPolygonEvent(sf::Event& event)
 {
-	if (event.type == sf::Event::KeyPressed)
+	if (event_manager.isDoubleClick())
+	{
+		state_manager.set(State::Nothing);
+	}
+	else if (event.type == sf::Event::KeyPressed)
 	{
 		if (event.key.code == sf::Keyboard::Escape)
 		{
-			endDrawPolygonEvent();
+			state_manager.set(State::Nothing);
 		}
 	}
 	else if (event.type == sf::Event::MouseButtonPressed)
@@ -277,8 +303,11 @@ void Application::dispatch()
 
 	while (window_main->isOpen())
 	{
+		event_manager.reset();
 		while (window_main->pollEvent(event))
 		{
+			event_manager.processEvent(event);
+
 			ImGui::SFML::ProcessEvent(event);
 
 			if (event.type == sf::Event::Closed)
@@ -336,9 +365,4 @@ void Application::editVertexPolygonEvent(sf::Event& event)
 		mouse_hold = false;
 		current_polygon_buffer->endVertex();
 	}
-}
-
-void Application::endEditVertexPolygonEvent()
-{
-
 }

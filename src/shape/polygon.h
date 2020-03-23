@@ -17,33 +17,38 @@ namespace shape
 	class Polygon : public sf::Drawable
 	{
 	private:
+//		Maximum distance to find the nearest vertex
+//		Related with getNearestVertex()
 		const int vertex_edit_drag_max_distance = 10;
+//		The rectangle color in vertex when editing
 		const sf::Color vertex_edit_color = sf::Color::Black;
 
-		std::vector<sf::Vertex> vertexes;
+		std::vector<sf::Vertex> vertices;
+//		Has finish the vertices
+//		If true, it will draw the end edges (from end vertex to begin vertex)
+		bool finish;
+//		Color
 		sf::Color color_outline;
 		sf::Color color_fill;
 		bool is_filled;
+//		Edit mode
 		bool edit_mode;
-		bool finish;
 
-	public:
 		struct SortedEdgeTable
 		{
 			int y_min;
 			std::vector<std::vector<EdgeBucket>*> lines;
 		}
 			sorted_edge_table;
-
-		void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
-
+	public:
 		Polygon();
 		Polygon(float picked_color_primary[3], float picked_color_secondary[3], bool is_filled);
 		Polygon(Polygon const& another_polygon);
 
 		void appendVertex(sf::Vertex vertex);
-		void endVertex();
 		sf::Vertex popBackVertex();
+		void endVertex();
+
 		int size();
 		const sf::Color& getFillColor();
 		const sf::Color& getOutlineColor();
@@ -51,10 +56,13 @@ namespace shape
 		const std::vector<sf::Vertex>& data();
 
 		SortedEdgeTable constructSortedEdgeTable();
-		void fill(sf::RenderTarget& window) const;
-		void startEditMode();
-		void endEditMode();
+		// Switch edit mode of polygon
+		void isEditMode(bool is_it);
+		// Get nearest vertex from a position with a certain constraint
 		sf::Vertex* getNearestVertex(sf::Vector2i pos);
+
+		void fill(sf::RenderTarget& window) const;
+		void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
 #ifdef DEBUG
 		static void printSortedEdgeTable(SortedEdgeTable& sorted_edge_table);

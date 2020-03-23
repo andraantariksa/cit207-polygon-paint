@@ -95,6 +95,11 @@ namespace utils
 
 			float secondary_color[3];
 
+			// , or )   , rgb(
+			char __trash, ___trash[4];
+//			std::stringstream ss_color(stroke);
+//			ss_color >> ___trash >> secondary_color[0] >> __trash >> secondary_color[1] >> __trash >> secondary_color[2] >> __trash;
+
 			std::sscanf(stroke, "rgb(%f,%f,%f)", &secondary_color[0], &secondary_color[1], &secondary_color[2]);
 
 			const char* points = xml_polygon->Attribute("points");
@@ -102,9 +107,7 @@ namespace utils
 
 			int x, y;
 
-			char trash; // Comma
-
-			while(ss_points >> x >> trash >> y)
+			while(ss_points >> x >> __trash >> y)
 			{
 				temp_vertices.push_back(sf::Vertex(sf::Vector2f(x, y), sf::Color::Black));
 			}
@@ -113,6 +116,8 @@ namespace utils
 
 			float primary_color[3];
 
+//			ss_color.str(fill);
+//			ss_color >> ___trash >> primary_color[0] >> __trash >> primary_color[1] >> __trash >> primary_color[2] >> __trash;
 			std::sscanf(fill, "rgb(%f,%f,%f)", &primary_color[0], &primary_color[1], &primary_color[2]);
 			primary_color[0] /= 255.0f;
 			primary_color[1] /= 255.0f;
@@ -135,7 +140,8 @@ namespace utils
 
 			if (is_filled)
 			{
-				temp_layer.object.polygon->constructSortedEdgeTable();
+//				temp_layer.object.polygon->constructSortedEdgeTable();
+				temp_layer.object.polygon->endVertex();
 			}
 
 			layers->push_back(temp_layer);

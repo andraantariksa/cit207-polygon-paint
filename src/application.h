@@ -3,7 +3,8 @@
 
 #include "shape/layer.h"
 #include "shape/polygon.h"
-#include "state.h"
+#include "state-manager.h"
+#include "event-manager.h"
 
 #include <list>
 #include <memory>
@@ -13,13 +14,18 @@
 class Application
 {
 private:
+	// Window
 	std::unique_ptr<sf::RenderWindow> window_main;
 	int window_width;
 	int window_height;
 
+	// Layers
 	std::vector<Layer> layers;
-	StateManager state_manager;
 	int layer_counter;
+
+	// State and event
+	StateManager state_manager;
+	EventManager event_manager;
 
 	float picked_color_primary[3];
 	float picked_color_secondary[3];
@@ -42,14 +48,15 @@ public:
 	Application(int window_width, int window_height, const sf::String& title);
 	~Application();
 
+	// Render the layers
 	void update();
+	// Render the interface
 	void updateInterface(Assets& assets);
+	// Main loop
 	void dispatch();
 
 	void editVertexPolygonEvent(sf::Event& event);
-	void endEditVertexPolygonEvent();
 	void drawPolygonEvent(sf::Event& event);
-	void endDrawPolygonEvent();
 };
 
 #endif //_APPLICATION_HPP_

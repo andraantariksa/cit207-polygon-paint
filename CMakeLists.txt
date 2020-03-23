@@ -58,7 +58,8 @@ set(SOURCE
         src/shape/layer.cc
         src/shape/edge-bucket.cc
         src/shape/polygon.cc
-        src/state.cc
+        src/state-manager.cc
+        src/event-manager.cc
         )
 
 add_executable(PolygonPaint

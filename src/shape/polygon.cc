@@ -21,7 +21,7 @@ namespace shape
 
 	Polygon::Polygon(Polygon const& another_polygon)
 		:
-		vertexes(another_polygon.vertexes),
+		vertices(another_polygon.vertices),
 		color_outline(another_polygon.color_outline),
 		color_fill(another_polygon.color_fill),
 		is_filled(another_polygon.is_filled),
@@ -52,31 +52,31 @@ namespace shape
 
 		if (edit_mode)
 		{
-			for (const auto& vertex : vertexes)
+			for (const auto& vertex : vertices)
 			{
 				rect.setPosition(vertex.position);
 				target.draw(rect);
 			}
 		}
 
-		target.draw(vertexes.data(), vertexes.size(), sf::LineStrip);
+		target.draw(vertices.data(), vertices.size(), sf::LineStrip);
 
 		if (finish)
 		{
-			sf::Vertex end_line[2] = { *--vertexes.end(), *vertexes.begin() };
+			sf::Vertex end_line[2] = { *--vertices.end(), *vertices.begin() };
 			target.draw(end_line, 2, sf::LineStrip);
 		}
 	}
 
 	void Polygon::appendVertex(sf::Vertex vertex)
 	{
-		vertexes.push_back(vertex);
+		vertices.push_back(vertex);
 	}
 
 	sf::Vertex Polygon::popBackVertex()
 	{
-		sf::Vertex ret = vertexes.back();
-		vertexes.pop_back();
+		sf::Vertex ret = vertices.back();
+		vertices.pop_back();
 		return ret;
 	}
 
@@ -85,9 +85,9 @@ namespace shape
 		finish = true;
 
 		// Should be connected, to generate the sorted edge table
-		vertexes.push_back(*vertexes.begin());
+		vertices.push_back(*vertices.begin());
 		auto t = constructSortedEdgeTable();
-		vertexes.pop_back();
+		vertices.pop_back();
 #ifdef DEBUG
 		printSortedEdgeTable(t);
 #endif
@@ -107,7 +107,7 @@ namespace shape
 		sf::Vector2f sorted_by_y_vertex[2];
 
 		// Get the size of table
-		auto [vertex_with_y_min, vertex_with_y_max] = std::minmax_element(vertexes.begin(), vertexes.end(), [](const sf::Vertex a, const sf::Vertex b){
+		auto [vertex_with_y_min, vertex_with_y_max] = std::minmax_element(vertices.begin(), vertices.end(), [](const sf::Vertex a, const sf::Vertex b){
 			return a.position.y < b.position.y;
 		});
 
@@ -123,7 +123,7 @@ namespace shape
 
 		// For loop from beginning to end - 1, and taking 2 element each
 		// [1, 2], [2, 3], ...
-		for (auto current_vertex = vertexes.begin(); current_vertex != std::prev(vertexes.end()); ++current_vertex)
+		for (auto current_vertex = vertices.begin(); current_vertex != std::prev(vertices.end()); ++current_vertex)
 		{
 			next_vertex = std::next(current_vertex);
 
@@ -252,12 +252,12 @@ namespace shape
 
 	int Polygon::size()
 	{
-		return vertexes.size();
+		return vertices.size();
 	}
 
 	const std::vector<sf::Vertex>& Polygon::data()
 	{
-		return vertexes;
+		return vertices;
 	}
 
 #ifdef DEBUG
@@ -301,19 +301,14 @@ namespace shape
 		return is_filled;
 	}
 
-	void Polygon::startEditMode()
+	void Polygon::isEditMode(bool is_it)
 	{
-		edit_mode = true;
-	}
-
-	void Polygon::endEditMode()
-	{
-		edit_mode = false;
+		edit_mode = is_it;
 	}
 
 	sf::Vertex* Polygon::getNearestVertex(sf::Vector2i pos)
 	{
-		for (auto& vertex : vertexes)
+		for (auto& vertex : vertices)
 		{
 			if (
 				std::abs((int)vertex.position.x - pos.x) <= vertex_edit_drag_max_distance &&
