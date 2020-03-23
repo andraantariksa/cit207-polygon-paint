@@ -1,3 +1,5 @@
+#include <functional>
+
 #define DEBUG
 //#define VERBOSE 0
 
@@ -15,8 +17,8 @@ Application::Application(int window_width, int window_height, const sf::String& 
 	window_main(std::make_unique<sf::RenderWindow>(sf::VideoMode(window_width, window_height), title)),
 	window_width(window_width),
 	window_height(window_height),
-	state_manager(),
 	layer_counter(0),
+	state_manager(),
 	picked_color_primary{ 0, 0, 0 },
 	picked_color_secondary{ 0, 0, 0 },
 	selected_layer_idx(-1),
@@ -57,21 +59,27 @@ void Application::updateInterface(Assets& assets)
 			if (ImGui::MenuItem("Open"))
 			{
 				char const* filename = utils::Dialog::load();
-				for (auto layer : layers)
+				if (filename != nullptr)
 				{
-					layer.free();
+					for (auto layer : layers)
+					{
+						layer.free();
+					}
+					layers.clear();
+					utils::SVG::loadFromFile(filename, &layers);
 				}
-				layers.clear();
-				utils::SVG::loadFromFile(filename, &layers);
 			}
 
 			// Saving
 			if (ImGui::MenuItem("Save"))
 			{
 				char const* filename = utils::Dialog::save();
-				utils::SVG svg(window_width, window_height, filename);
-				svg.from(layers);
-				svg.save();
+				if (filename != nullptr)
+				{
+					utils::SVG svg(window_width, window_height, filename);
+					svg.from(layers);
+					svg.save();
+				}
 			}
 
 			if (ImGui::MenuItem("Close"))
@@ -140,6 +148,14 @@ void Application::updateInterface(Assets& assets)
 			);
 		}
 
+		// Bruh unsafe moment
+		if (selected_layer_idx != -1)
+		{
+			layers.at(selected_layer_idx).object.polygon->setFillColor(picked_color_primary);
+			layers.at(selected_layer_idx).object.polygon->setOutlineColor(picked_color_secondary);
+			layers.at(selected_layer_idx).object.polygon->isFilled(selected_fill_color_choice);
+		}
+
 		if (ImGui::CollapsingHeader("Layer", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::BeginChild("", ImVec2(0, 200), true);
@@ -157,6 +173,19 @@ void Application::updateInterface(Assets& assets)
 					}
 
 					selected_layer_idx = current_layer_idx;
+					// Bruh unsafe moment
+					selected_fill_color_choice = layers.at(current_layer_idx).object.polygon->isFilled();
+					
+					picked_color_primary[0] = layers.at(current_layer_idx).object.polygon->getFillColor().r / 255.0;
+					picked_color_primary[1] = layers.at(current_layer_idx).object.polygon->getFillColor().g / 255.0;
+					picked_color_primary[2] = layers.at(current_layer_idx).object.polygon->getFillColor().b / 255.0;
+
+					picked_color_secondary[0] =
+						layers.at(current_layer_idx).object.polygon->getOutlineColor().r / 255.0;
+					picked_color_secondary[1] =
+						layers.at(current_layer_idx).object.polygon->getOutlineColor().g / 255.0;
+					picked_color_secondary[2] =
+						layers.at(current_layer_idx).object.polygon->getOutlineColor().b / 255.0;
 				}
 			}
 //				printf("selected_layer_idx %d\ncurrent_layer_idx %d\n", selected_layer_idx, current_layer_idx);
@@ -164,6 +193,12 @@ void Application::updateInterface(Assets& assets)
 
 			if (selected_layer_idx != -1)
 			{
+				if (ImGui::Button("Deselect"))
+				{
+					state_manager.set(State::Nothing);
+					selected_layer_idx = -1;
+				}
+
 				// If not the last/front layer
 				if (selected_layer_idx != layers.size() - 1)
 				{

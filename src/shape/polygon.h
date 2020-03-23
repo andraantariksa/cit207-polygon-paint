@@ -51,8 +51,16 @@ namespace shape
 
 		int size();
 		const sf::Color& getFillColor();
+		void setFillColor(float color[3]);
+		void setOutlineColor(float color[3]);
+		void setFillColor(sf::Color& color);
+		void setOutlineColor(sf::Color& color);
+
 		const sf::Color& getOutlineColor();
+
 		const bool& isFilled();
+		void isFilled(bool is_it);
+
 		const std::vector<sf::Vertex>& data();
 
 		SortedEdgeTable constructSortedEdgeTable();

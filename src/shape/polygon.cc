@@ -320,5 +320,34 @@ namespace shape
 		return nullptr;
 	}
 
+	void Polygon::isFilled(bool is_it)
+	{
+		is_filled = is_it;
+	}
+
+	void Polygon::setFillColor(float color[3])
+	{
+		color_fill.r = color[0] * 255.0;
+		color_fill.g = color[1] * 255.0;
+		color_fill.b = color[2] * 255.0;
+	}
+
+	void Polygon::setOutlineColor(float color[3])
+	{
+		color_outline.r = color[0] * 255.0;
+		color_outline.g = color[1] * 255.0;
+		color_outline.b = color[2] * 255.0;
+	}
+
+	void Polygon::setFillColor(sf::Color& color)
+	{
+		color_fill = color;
+	}
+
+	void Polygon::setOutlineColor(sf::Color& color)
+	{
+		color_outline = color;
+	}
+
 #endif
 }
