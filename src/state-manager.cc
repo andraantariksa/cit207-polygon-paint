@@ -14,17 +14,17 @@ void StateManager::set(State state)
 {
 	try
 	{
-		printf("called!\n");
+//		printf("called!\n");
 		lifecycle_end.at(current_state)();
-		printf("called!2\n");
+//		printf("called!2\n");
 	}
 	catch (std::out_of_range& ex)
 	{
-		printf("Not found!\n");
+//		printf("Not found!\n");
 	}
 	catch (std::exception& ex)
 	{
-		printf("Fail wtf idk\n");
+//		printf("Fail wtf idk\n");
 	}
 
 	current_state = state;
