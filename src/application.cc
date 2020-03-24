@@ -106,6 +106,7 @@ void Application::updateInterface(Assets& assets)
 			// Polygon button
 			if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 			{
+				selected_layer_idx = -1;
 				state_manager.set(State::DrawPolygon);
 
 				current_polygon_buffer = new shape::Polygon(
@@ -175,7 +176,7 @@ void Application::updateInterface(Assets& assets)
 					selected_layer_idx = current_layer_idx;
 					// Bruh unsafe moment
 					selected_fill_color_choice = layers.at(current_layer_idx).object.polygon->isFilled();
-					
+
 					picked_color_primary[0] = layers.at(current_layer_idx).object.polygon->getFillColor().r / 255.0;
 					picked_color_primary[1] = layers.at(current_layer_idx).object.polygon->getFillColor().g / 255.0;
 					picked_color_primary[2] = layers.at(current_layer_idx).object.polygon->getFillColor().b / 255.0;
@@ -196,7 +197,9 @@ void Application::updateInterface(Assets& assets)
 				if (ImGui::Button("Deselect"))
 				{
 					state_manager.set(State::Nothing);
+
 					selected_layer_idx = -1;
+					current_polygon_buffer = nullptr;
 				}
 
 				// If not the last/front layer
@@ -229,7 +232,7 @@ void Application::updateInterface(Assets& assets)
 
 				if (!state_manager.is(State::EditVertexPolygon))
 				{
-					if (ImGui::Button("Edit polygon"))
+					if (ImGui::Button("Edit polygon vertex"))
 					{
 						state_manager.set(State::EditVertexPolygon);
 						state_manager.setLifeCycleEnd(State::EditVertexPolygon, [this]()
@@ -244,9 +247,36 @@ void Application::updateInterface(Assets& assets)
 				}
 				else
 				{
-					if (ImGui::Button("Finish edit polygon"))
+					if (ImGui::Button("Finish edit polygon vertex"))
 					{
 						state_manager.set(State::Nothing);
+					}
+				}
+
+				if (selected_layer_idx != -1 && layers[selected_layer_idx].object.polygon->size() > 3)
+				{
+					if (!state_manager.is(State::DeleteVertexPolygon))
+					{
+						if (ImGui::Button("Delete polygon vertex"))
+						{
+							state_manager.set(State::DeleteVertexPolygon);
+							state_manager.setLifeCycleEnd(State::DeleteVertexPolygon, [this]()
+							{
+								printf("END!\n");
+								layers[selected_layer_idx].object.polygon->isEditMode(false);
+								current_polygon_buffer = nullptr;
+							});
+
+							layers[selected_layer_idx].object.polygon->isEditMode(true);
+							current_polygon_buffer = layers[selected_layer_idx].object.polygon;
+						}
+					}
+					else
+					{
+						if (ImGui::Button("Finish delete polygon vertex"))
+						{
+							state_manager.set(State::Nothing);
+						}
 					}
 				}
 
@@ -358,6 +388,10 @@ void Application::dispatch()
 			{
 				editVertexPolygonEvent(event);
 			}
+			else if (state_manager.is(State::DeleteVertexPolygon))
+			{
+				deleteVertexPolygonEvent(event);
+			}
 		}
 
 		window_main->clear(sf::Color::White);
@@ -399,5 +433,24 @@ void Application::editVertexPolygonEvent(sf::Event& event)
 	{
 		mouse_hold = false;
 		current_polygon_buffer->endVertex();
+	}
+}
+
+void Application::deleteVertexPolygonEvent(sf::Event& event)
+{
+	if (event.type == sf::Event::MouseButtonPressed)
+	{
+		if (event.mouseButton.button == sf::Mouse::Left)
+		{
+			auto mouse_pos = sf::Mouse::getPosition(*window_main);
+			current_polygon_buffer->removeNearestVertex(mouse_pos);
+			current_polygon_buffer->endVertex();
+
+			if (current_polygon_buffer->size() <= 3)
+			{
+				state_manager.set(State::Nothing);
+				current_polygon_buffer = nullptr;
+			}
+		}
 	}
 }

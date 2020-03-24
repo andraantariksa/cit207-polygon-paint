@@ -10,7 +10,8 @@ enum class State
 {
 	Nothing,
 	DrawPolygon,
-	EditVertexPolygon
+	EditVertexPolygon,
+	DeleteVertexPolygon
 };
 
 class StateManager

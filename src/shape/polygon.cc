@@ -320,23 +320,44 @@ namespace shape
 		return nullptr;
 	}
 
+	void Polygon::removeNearestVertex(sf::Vector2i pos)
+	{
+		int i = 0;
+		for (auto& vertex : vertices)
+		{
+			if (
+				std::abs((int)vertex.position.x - pos.x) <= vertex_edit_drag_max_distance &&
+				std::abs((int)vertex.position.y - pos.y) <= vertex_edit_drag_max_distance)
+			{
+				vertices.erase(vertices.begin() + i);
+			}
+
+			i++;
+		}
+	}
+
 	void Polygon::isFilled(bool is_it)
 	{
 		is_filled = is_it;
 	}
 
-	void Polygon::setFillColor(float color[3])
+	void Polygon::setFillColor(const float color[3])
 	{
 		color_fill.r = color[0] * 255.0;
 		color_fill.g = color[1] * 255.0;
 		color_fill.b = color[2] * 255.0;
 	}
 
-	void Polygon::setOutlineColor(float color[3])
+	void Polygon::setOutlineColor(const float color[3])
 	{
 		color_outline.r = color[0] * 255.0;
 		color_outline.g = color[1] * 255.0;
 		color_outline.b = color[2] * 255.0;
+
+		for (auto& vertex: vertices)
+		{
+			vertex.color = color_outline;
+		}
 	}
 
 	void Polygon::setFillColor(sf::Color& color)

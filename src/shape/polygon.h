@@ -51,8 +51,8 @@ namespace shape
 
 		int size();
 		const sf::Color& getFillColor();
-		void setFillColor(float color[3]);
-		void setOutlineColor(float color[3]);
+		void setFillColor(const float color[3]);
+		void setOutlineColor(const float color[3]);
 		void setFillColor(sf::Color& color);
 		void setOutlineColor(sf::Color& color);
 
@@ -68,6 +68,7 @@ namespace shape
 		void isEditMode(bool is_it);
 		// Get nearest vertex from a position with a certain constraint
 		sf::Vertex* getNearestVertex(sf::Vector2i pos);
+		void removeNearestVertex(sf::Vector2i pos);
 
 		void fill(sf::RenderTarget& window) const;
 		void draw(sf::RenderTarget& target, sf::RenderStates states) const override;

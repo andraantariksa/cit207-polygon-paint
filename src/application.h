@@ -55,6 +55,7 @@ public:
 	// Main loop
 	void dispatch();
 
+	void deleteVertexPolygonEvent(sf::Event& event);
 	void editVertexPolygonEvent(sf::Event& event);
 	void drawPolygonEvent(sf::Event& event);
 };
