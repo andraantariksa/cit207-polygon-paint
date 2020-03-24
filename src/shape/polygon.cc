@@ -1,10 +1,10 @@
-#define DEBUG
+//#define DEBUG
 //#define VERBOSE 0
 
 #include <algorithm>
 
-#include "../utils/color.h"
 #include "polygon.h"
+#include "../utils/color.h"
 #include "edge-bucket.h"
 
 namespace shape
@@ -285,6 +285,7 @@ namespace shape
 		}
 		printf("END DEBUG SET\n");
 	}
+#endif
 
 	const sf::Color& Polygon::getFillColor()
 	{
@@ -370,5 +371,4 @@ namespace shape
 		color_outline = color;
 	}
 
-#endif
 }

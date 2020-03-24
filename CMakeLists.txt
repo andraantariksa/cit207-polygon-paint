@@ -51,6 +51,7 @@ endif()
 
 set(SOURCE
         src/main.cc
+
         src/application.cc
         src/utils/color.cc
         src/utils/dialog.cc

@@ -1,16 +1,16 @@
 #include <functional>
 
-#define DEBUG
+//#define DEBUG
 //#define VERBOSE 0
 
 #include <imgui.h>
 #include <imgui-SFML.h>
 
 #include "application.h"
+#include "shape/polygon.h"
 #include "shape/layer.h"
 #include "utils/dialog.h"
 #include "utils/svg.h"
-#include "shape/polygon.h"
 #include "utils/color.h"
 
 Application::Application(int window_width, int window_height, const sf::String& title) :

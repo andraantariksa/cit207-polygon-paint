@@ -87,7 +87,7 @@ namespace utils
 		{
 			Layer temp_layer;
 			temp_layer.type = LayerObjectType::Polygon;
-			temp_layer.name = std::string("Layer") + std::to_string(iter);
+			temp_layer.name = std::string("Imported Layer ") + std::to_string(iter);
 
 			std::vector<sf::Vertex> temp_vertices;
 
