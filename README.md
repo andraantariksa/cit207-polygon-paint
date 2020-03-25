@@ -2,6 +2,8 @@
 
 This repository is dedicated for my Computer Graphics and Animation (CIT207) course project
 
+Project reports: https://docs.google.com/document/d/1WZWw11JhMAVE9G6SSHbBWBBgWB-6_KUbMHDX9-uUyFo/edit?usp=sharing
+
 ## Task Detail
 
 Create an application that allows the user to draw polygons (filled/hollow) on a screen. The application should be able to do the following:
