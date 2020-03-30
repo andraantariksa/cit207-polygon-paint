@@ -124,6 +124,13 @@ void Application::updateInterface(Assets& assets)
 
 				state_manager.setLifeCycleEnd(State::DrawPolygon, [this]()
 				{
+					if (current_polygon_buffer->size() < 3)
+					{
+						layers.pop_back();
+						delete current_polygon_buffer;
+						current_polygon_buffer = nullptr;
+						return;
+					}
 					current_polygon_buffer->endVertex();
 					current_polygon_buffer = nullptr;
 				});
