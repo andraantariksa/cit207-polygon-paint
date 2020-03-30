@@ -110,8 +110,6 @@ void Application::updateInterface(Assets& assets)
 
 				selected_layer_idx = -1;
 
-				printf("Safe\n");
-
 				current_polygon_buffer = new shape::Polygon(
 					picked_color_primary,
 					picked_color_secondary,
