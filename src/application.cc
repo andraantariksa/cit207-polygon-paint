@@ -269,7 +269,7 @@ void Application::updateInterface(Assets& assets)
 							state_manager.set(State::DeleteVertexPolygon);
 							state_manager.setLifeCycleEnd(State::DeleteVertexPolygon, [this]()
 							{
-								printf("END!\n");
+//								printf("END!\n");
 								layers[selected_layer_idx].object.polygon->isEditMode(false);
 								current_polygon_buffer = nullptr;
 							});
@@ -305,7 +305,7 @@ void Application::updateInterface(Assets& assets)
 					}
 					catch (std::exception& ex)
 					{
-						printf("Error when deleting layer\n");
+//						printf("Error when deleting layer\n");
 					}
 
 					selected_layer_idx = -1;
