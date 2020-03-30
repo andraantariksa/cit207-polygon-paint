@@ -106,8 +106,11 @@ void Application::updateInterface(Assets& assets)
 			// Polygon button
 			if (ImGui::ImageButton(assets.icon.polygon, sf::Vector2f(30, 30)))
 			{
-				selected_layer_idx = -1;
 				state_manager.set(State::DrawPolygon);
+
+				selected_layer_idx = -1;
+
+				printf("Safe\n");
 
 				current_polygon_buffer = new shape::Polygon(
 					picked_color_primary,
@@ -126,6 +129,7 @@ void Application::updateInterface(Assets& assets)
 				{
 					if (current_polygon_buffer->size() < 3)
 					{
+						layer_counter--;
 						layers.pop_back();
 						delete current_polygon_buffer;
 						current_polygon_buffer = nullptr;
@@ -168,10 +172,17 @@ void Application::updateInterface(Assets& assets)
 		{
 			ImGui::BeginChild("", ImVec2(0, 200), true);
 
+			int layer_selectable_flag = ImGuiSelectableFlags_None;
+			if (!state_manager.is(State::Nothing))
+			{
+				layer_selectable_flag = ImGuiSelectableFlags_Disabled;
+			}
+
 			int current_layer_idx = 0;
 			for (auto layer = layers.begin(); layer != layers.end(); ++layer, ++current_layer_idx)
 			{
-				if (ImGui::Selectable(layer->name.c_str(), selected_layer_idx == current_layer_idx))
+				if (ImGui::Selectable(layer->name.c_str(),
+					selected_layer_idx == current_layer_idx, layer_selectable_flag))
 				{
 					if (selected_layer_idx != -1)
 					{

@@ -14,8 +14,8 @@ namespace shape
 		color_outline(sf::Color::Black),
 		color_fill(sf::Color::Transparent),
 		is_filled(false),
-		edit_mode(false),
-		finish(false)
+		finish(false),
+		edit_mode(false)
 	{
 	}
 
@@ -33,9 +33,9 @@ namespace shape
 		:
 		color_outline(color_float3(picked_color_secondary)),
 		color_fill(color_float3(picked_color_primary)),
-		is_filled(is_filled),
+		finish(false),
 		edit_mode(false),
-		finish(false)
+		is_filled(is_filled)
 	{
 	}
 
