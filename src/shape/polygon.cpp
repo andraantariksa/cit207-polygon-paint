@@ -199,7 +199,7 @@ namespace shape
 			// I think we only have to sort on inserting the active edge list
 			std::sort(active_edge_list.begin(), active_edge_list.end(), [](EdgeBucket a, EdgeBucket b)
 			{
-				return a.x_of_y_min <= b.x_of_y_min;
+				return a.x_of_y_min < b.x_of_y_min;
 			});
 
 #ifdef DEBUG

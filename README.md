@@ -20,12 +20,34 @@ Create an application that allows the user to draw polygons (filled/hollow) on a
 
 https://drive.google.com/open?id=1UsEihUffT-TxhDnvCS4lG5BjZjcvjiZO
 
-## Prerequisites
+## Features
+
+- Create filled/hollow polygon
+- Choose the fill/outline color
+- Edit vertex position
+- Delete vertex
+- Delete layer
+- Move layer forward/backward
+- Save and load to and from .svg file
+
+## Screenshot
+
+![Draw hollow polygon](assets/1.gif)
+![Color picking](assets/2.gif)
+![Draw filled polygon](assets/3.gif)
+![Draw ordering](assets/4.gif)
+![Move vertices](assets/5.gif)
+![Delete vertices](assets/6.gif)
+![Delete layer](assets/7.gif)
+
+## Building
+
+### Prerequisites
 
 - CMake >= 3.10
 - C++17 supported compiler
 
-## Installation
+### Installation
 
 - Clone to local
 - Run CMake and build

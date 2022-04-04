@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 include(FetchContent)
 
-project(PolygonPaint)
+project(PolygonPaint
+        LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(FETCHCONTENT_QUIET OFF)
 
 # SFML
+set(BUILD_SHARED_LIBS FALSE)
 set(SFML_VERSION "2.5.1")
 FetchContent_Declare(
         sfml
@@ -34,6 +36,7 @@ endif()
 
 # ImGui-SFML
 set(IMGUI_SFML_VERSION "2.1")
+set(BUILD_SHARED_LIBS FALSE)
 FetchContent_Declare(
         imgui_sfml
         GIT_REPOSITORY "https://github.com/eliasdaler/imgui-sfml.git"
@@ -50,32 +53,31 @@ if(NOT imgui_sfml_POPULATED)
 endif()
 
 set(SOURCE
-        src/main.cc
+        src/main.cpp
 
-        src/application.cc
-        src/utils/color.cc
-        src/utils/dialog.cc
-        src/utils/svg.cc
-        src/shape/layer.cc
-        src/shape/edge-bucket.cc
-        src/shape/polygon.cc
-        src/state-manager.cc
-        src/event-manager.cc
+        src/application.cpp
+        src/utils/color.cpp
+        src/utils/dialog.cpp
+        src/utils/svg.cpp
+        src/shape/layer.cpp
+        src/shape/edge-bucket.cpp
+        src/shape/polygon.cpp
+        src/state-manager.cpp
+        src/event-manager.cpp
         )
 
 add_executable(PolygonPaint
         ${SOURCE}
 
-        lib/tinyfiledialogs/tinyfiledialogs.c
-#        lib/simplexml/lib/simplexml.cc
-        lib/tinyxml2/tinyxml2.cpp
+        "lib/tinyfiledialogs/tinyfiledialogs.c"
+        "lib/simple-svg/simple_svg.hpp"
+        "lib/tinyxml2/tinyxml2.cpp"
         )
 
 target_include_directories(PolygonPaint
         PRIVATE
         lib/tinyfiledialogs
         lib/simple-svg
-#        lib/simplexml/lib
         lib/tinyxml2
         )
 
@@ -86,26 +88,3 @@ target_link_libraries(PolygonPaint
         sfml-window
         ImGui-SFML::ImGui-SFML
         )
-
-if(MSVC)
-    configure_file(
-            ${imgui_sfml_BINARY_DIR}/ImGui-SFML.dll
-            ImGui-SFML.dll
-            COPYONLY
-    )
-    configure_file(
-            ${sfml_BINARY_DIR}/lib/sfml-graphics-d-2.dll
-            sfml-graphics-d-2.dll
-            COPYONLY
-    )
-    configure_file(
-            ${sfml_BINARY_DIR}/lib/sfml-window-d-2.dll
-            sfml-window-d-2.dll
-            COPYONLY
-    )
-    configure_file(
-            ${sfml_BINARY_DIR}/lib/sfml-system-d-2.dll
-            sfml-system-d-2.dll
-            COPYONLY
-    )
-endif()
